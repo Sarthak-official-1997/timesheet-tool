@@ -518,13 +518,15 @@
     </div>
     <input type="file" id="importBackupFile" accept="application/json" hidden>
 
-    <div class="modal-actions">
-      <div class="sub" style="margin:0;" id="driveStatusHint">Google Drive backup: not connected</div>
-      <button class="btn-primary" id="driveConnectBtn" type="button" disabled>Connect Google Drive</button>
-    </div>
-    <div class="backup-row" id="driveActionsRow" hidden>
-      <button class="btn-outline" id="driveBackupNowBtn" type="button">Back up now</button>
-      <button class="btn-outline" id="driveRestoreBtn" type="button">Restore from Drive</button>
+    <div id="driveUiWrap" hidden>
+      <div class="modal-actions">
+        <div class="sub" style="margin:0;" id="driveStatusHint">Google Drive backup: not connected</div>
+        <button class="btn-primary" id="driveConnectBtn" type="button" disabled>Connect Google Drive</button>
+      </div>
+      <div class="backup-row" id="driveActionsRow" hidden>
+        <button class="btn-outline" id="driveBackupNowBtn" type="button">Back up now</button>
+        <button class="btn-outline" id="driveRestoreBtn" type="button">Restore from Drive</button>
+      </div>
     </div>
 
     <div class="modal-actions">
@@ -550,7 +552,7 @@
     <div class="sub">This device has no planner data yet. If you're reinstalling or switching phones, restore it here instead of starting over.</div>
     <div class="restore-options">
       <button class="btn-primary" id="restoreImportBtn" type="button">⬆ Import a backup file</button>
-      <button class="btn-outline" id="restoreDriveBtn" type="button">Restore from Google Drive</button>
+      <button class="btn-outline" id="restoreDriveBtn" type="button" hidden>Restore from Google Drive</button>
       <button class="btn-outline" id="restoreSyncBtn" type="button">I have a Cloud sync code</button>
     </div>
     <button class="btn-text" id="restoreSkipBtn" type="button" style="margin-top:14px;">Start fresh instead</button>
@@ -931,6 +933,9 @@ document.getElementById('backupBannerDismiss').addEventListener('click', ()=>{
 /* ---------- Fresh-install restore prompt ---------- */
 function maybeShowRestorePrompt(){
   if(hasAnyLocalData()) return;
+  // Cloud sync already being on means this device was set up before — never
+  // show "are you new here?" for it, even if a pull hasn't landed yet this load.
+  if(isCloudConfigured()) return;
   if(localStorage.getItem('_restore_prompt_dismissed')==='1') return;
   document.getElementById('restoreOverlay').classList.add('show');
 }
@@ -948,18 +953,22 @@ document.getElementById('restoreSyncBtn').addEventListener('click', ()=>{
 });
 
 /* ---------- Google Drive backup ----------
-   Fill in GOOGLE_CLIENT_ID (from Google Cloud Console -> Credentials) to
-   enable this. Until then the Connect button stays disabled and Drive
-   restore is skipped everywhere it's offered. */
+   Under construction — flip this to true (and fill in GOOGLE_CLIENT_ID) once
+   it's ready to show. Until then every bit of Drive-related UI stays hidden,
+   the code just isn't wired up to the page. */
+const SHOW_GOOGLE_DRIVE_UI = false;
 const GOOGLE_CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com';
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const DRIVE_BACKUP_FILENAME = 'field-planner-backup.json';
 let driveTokenClient = null;
 let driveAccessToken = null;
 
-function isGoogleConfigured(){ return GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.startsWith('YOUR_'); }
+function isGoogleConfigured(){ return SHOW_GOOGLE_DRIVE_UI && GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.startsWith('YOUR_'); }
 
 function updateDriveUI(){
+  document.getElementById('driveUiWrap').hidden = !SHOW_GOOGLE_DRIVE_UI;
+  document.getElementById('restoreDriveBtn').hidden = !SHOW_GOOGLE_DRIVE_UI;
+  if(!SHOW_GOOGLE_DRIVE_UI) return;
   const connected = localStorage.getItem('_drive_connected')==='1';
   document.getElementById('driveStatusHint').textContent = !isGoogleConfigured()
     ? 'Google Drive backup: not set up yet'
@@ -2099,7 +2108,6 @@ window.addEventListener('focus', checkForNewVersion);
 window.addEventListener('pageshow', checkForNewVersion);
 
 (async function init(){
-  maybeShowRestorePrompt();
   await loadTags();
   renderTagbar();
   await applyQuickLogFromUrl();
@@ -2114,6 +2122,7 @@ window.addEventListener('pageshow', checkForNewVersion);
   }
   updateSyncPill(true);
   if(isCloudConfigured()) await pullFromCloud(false);
+  maybeShowRestorePrompt();
   setInterval(()=>{ pullFromCloud(false); }, 20000);
   await registerServiceWorker();
   await updateNotifPill();
