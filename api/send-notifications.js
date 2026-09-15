@@ -16,8 +16,10 @@ const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:example@example.com';
 
-// Trip countdown fires this many days out, plus on the day itself (0).
-const TRIP_COUNTDOWN_DAYS = [3, 1, 0];
+// Trip countdown fires every day counting down to a tagged date (Travel,
+// Home, or any custom tag), plus on the day itself (0) — capped so a date
+// tagged months out doesn't start daily-nagging immediately.
+const TRIP_COUNTDOWN_MAX_DAYS_OUT = 30;
 // Only nag about a low in-office % once the month is mostly over.
 const LOW_OFFICE_PCT_FROM_DAY = 20;
 const LOW_OFFICE_PCT_TARGET = 60;
@@ -123,7 +125,9 @@ module.exports = async (req, res) => {
 
       const trip = findNextTrip(data, today);
       const diffDays = trip ? Math.round((trip.dateMs - Date.UTC(y, m, d)) / 86400000) : null;
-      const tripDue = trip && TRIP_COUNTDOWN_DAYS.includes(diffDays);
+      const tripDue = trip && diffDays >= 0 && diffDays <= TRIP_COUNTDOWN_MAX_DAYS_OUT;
+      // diffDays is baked into the key, so this naturally sends once per day
+      // as the countdown ticks down — no separate "already sent today" check needed.
       const tripKey = tripDue ? `${trip.dateMs}-${trip.tag.id}-${diffDays}` : null;
 
       const lowOfficePct = d >= LOW_OFFICE_PCT_FROM_DAY && stats.workingDays > 0 && stats.officePercent < LOW_OFFICE_PCT_TARGET;
