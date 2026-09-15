@@ -81,6 +81,7 @@
   .pct-bar-fill.ok{background:var(--sage);}
   .pct-bar-fill.low{background:var(--rose);}
   .pct-bar-target{ position:absolute; top:-3px; bottom:-3px; width:2px; background:var(--ink); left:60%; opacity:0.55; }
+  .pct-bar-milestone{ position:absolute; top:-2px; bottom:-2px; width:2px; background:var(--ink-soft); left:50%; opacity:0.4; }
   .info-dot{ display:inline-flex; align-items:center; justify-content:center; width:13px; height:13px; border-radius:50%; background:var(--line-strong); color:var(--paper-raised); font-size:9px; font-weight:700; margin-left:4px; cursor:help; }
   .cell.is-weekend{ background:#f7f0eb; }
   @media (hover:hover) and (pointer:fine){
@@ -1459,7 +1460,7 @@ function renderStats(data, y, m){
     <div class="stat-card percent ${pctClass}">
       <div class="stat-num">${s.officePercent}%</div>
       <div class="stat-label">In-office<span class="info-dot" title="Office days ÷ Working days. Working days = weekdays − official holidays − leave taken. WFH and travel days count as worked, but not toward this %.">i</span></div>
-      <div class="pct-bar-track"><div class="pct-bar-fill ${pctClass}" style="width:${Math.min(s.officePercent,100)}%"></div><div class="pct-bar-target"></div></div>
+      <div class="pct-bar-track"><div class="pct-bar-fill ${pctClass}" style="width:${Math.min(s.officePercent,100)}%"></div><div class="pct-bar-milestone"></div><div class="pct-bar-target"></div></div>
       <div class="stat-sub">${s.officeDays}/${s.workingDays} days · target 60%</div>
     </div>`;
   document.getElementById('statsRow').innerHTML = `
