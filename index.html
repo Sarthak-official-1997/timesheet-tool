@@ -513,6 +513,10 @@
       <div class="sub" style="margin:0;" id="settingsSyncHint">Cloud sync: off</div>
       <button class="btn-primary" id="settingsSyncBtn" type="button">Cloud sync</button>
     </div>
+    <div class="modal-actions" id="resyncRow" hidden>
+      <div class="sub" style="margin:0;">Devices out of sync? Pull the cloud's latest, then push this device's data back up.</div>
+      <button class="btn-outline" id="resyncBtn" type="button">🔄 Resync now</button>
+    </div>
     <div class="modal-actions">
       <div class="sub" style="margin:0;">See if notifications actually show up on this device.</div>
       <button class="btn-primary" id="testNotifBtn" type="button">🔔 Send test notification</button>
@@ -793,7 +797,8 @@ async function pushToCloud(){
     // that's exactly how the missing planner_sync table went unnoticed.
     if(!r.ok){ throw new Error(`push failed: ${r.status}`); }
     updateSyncPill(true);
-  }catch(e){ console.error('cloud push failed', e); updateSyncPill(false, true); }
+    return true;
+  }catch(e){ console.error('cloud push failed', e); updateSyncPill(false, true); return false; }
 }
 // Rolling local safety net: snapshot what's on this device right before a
 // cloud pull overwrites anything, so a stale/bad sync can be undone. Keeps
@@ -811,7 +816,7 @@ function snapshotLocalData(){
   }catch(e){ console.error('snapshot failed', e); }
 }
 
-async function pullFromCloud(showFlash){
+async function pullFromCloud(showFlash, force){
   if(!isCloudConfigured()) return;
   const c = cloudConfig();
   try{
@@ -827,8 +832,9 @@ async function pullFromCloud(showFlash){
       const localCount = Object.keys(collectLocalData()).length;
       // Refuse a pull that looks suspiciously emptier than what's already
       // here — a genuine multi-device sync should only ever grow the data,
-      // never wipe most of it out in one shot.
-      if(localCount >= 3 && incomingCount < localCount / 2){
+      // never wipe most of it out in one shot. A manual "Resync now" (force)
+      // skips this — you're explicitly telling it to trust the cloud.
+      if(!force && localCount >= 3 && incomingCount < localCount / 2){
         console.error('cloud pull looked suspicious, skipped', { incomingCount, localCount });
         updateSyncPill(false, true);
         return;
@@ -840,11 +846,13 @@ async function pullFromCloud(showFlash){
       if(showFlash) flashSaved('Synced');
     }
     updateSyncPill(true);
-  }catch(e){ console.error('cloud pull failed', e); updateSyncPill(false, true); }
+    return true;
+  }catch(e){ console.error('cloud pull failed', e); updateSyncPill(false, true); return false; }
 }
 function updateSyncPill(ok, errored){
   const btn = document.getElementById('syncBtn');
   const hint = document.getElementById('settingsSyncHint');
+  document.getElementById('resyncRow').hidden = !isCloudConfigured();
   if(!isCloudConfigured()){ btn.textContent = 'Cloud sync: off'; btn.className = 'pill-btn'; hint.textContent = 'Cloud sync: off'; return; }
   // Showing the actual code (not just "on") lets you compare it against
   // another device at a glance — two devices only ever share data when
@@ -852,6 +860,19 @@ function updateSyncPill(ok, errored){
   if(errored){ btn.textContent = 'Cloud sync: error'; btn.className='pill-btn'; hint.textContent = `Cloud sync: error · code: ${getSyncId()}`; return; }
   btn.textContent = 'Cloud sync: on'; btn.className = 'pill-btn synced'; hint.textContent = `Cloud sync: on · code: ${getSyncId()}`;
 }
+document.getElementById('resyncBtn').addEventListener('click', async ()=>{
+  const btn = document.getElementById('resyncBtn');
+  const origText = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Resyncing…';
+  try{
+    const pulled = await pullFromCloud(false, true);
+    const pushed = await pushToCloud();
+    if(pulled && pushed) flashSaved('Resynced');
+    else alert("Resync didn't fully succeed — check your connection and try again. If it keeps failing, Cloud sync's status will show \"error.\"");
+  } finally {
+    btn.disabled = false; btn.textContent = origText;
+  }
+});
 document.getElementById('syncBtn').addEventListener('click', async ()=>{
   if(isCloudConfigured()){
     const code = getSyncId();
