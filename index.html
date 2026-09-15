@@ -302,6 +302,9 @@
   .sticky-stat.wfh b{ color:var(--sky-deep); }
   .sticky-stat.leave b{ color:var(--rose); }
   .sticky-stat.holiday b{ color:var(--lavender-deep); }
+  .holiday-notes{ margin-top:4px; display:flex; flex-direction:column; gap:2px; }
+  .holiday-notes .hn-row{ font-size:9.5px; color:var(--ink-soft); font-weight:600; }
+  .holiday-notes .hn-row b{ color:var(--lavender-deep); font-weight:700; }
 
   .grid.agenda-mode{ display:flex; flex-direction:column; gap:6px; }
   .weekdays.agenda-hide{ display:none; }
@@ -423,6 +426,7 @@
         <div id="stickyPercentWrap"></div>
       </div>
       <div class="sticky-stats-row" id="stickyStatsRow"></div>
+      <div class="holiday-notes" id="holidayNotes"></div>
       <div class="sticky-row2">
         <button class="nav-btn" id="prevStickyNav">&larr;</button>
         <div class="month-label" id="monthLabelSticky"></div>
@@ -1463,6 +1467,7 @@ function computeMonthStats(data, y, m){
   const daysInMonth = new Date(y, m+1, 0).getDate();
   let weekdayCount=0, weekendCount=0, officialHolOnWeekday=0, leaveOnWeekday=0;
   let officeDays=0, wfhDays=0, travelDays=0, homeDays=0, leaveDays=0, holidayCount=0;
+  const holidayOverrides = {};
   for(let day=1; day<=daysInMonth; day++){
     const dow = new Date(y,m,day).getDay();
     const isWeekend = (dow===0 || dow===6);
@@ -1489,14 +1494,17 @@ function computeMonthStats(data, y, m){
     // that's also an official holiday (e.g. your office works through a
     // gazetted holiday, so you take it as real personal leave instead).
     if(explicit==='leave') leaveDays++;
-    // A holiday only counts here while it's still untouched. The moment the
-    // user sets any explicit day type on it (Office/WFH/Travel/Home/Leave),
-    // it moves to that bucket instead and stops being counted as a holiday.
-    if(holiday && !explicit) holidayCount++;
+    // Holiday count is the total for the month, regardless of overrides —
+    // it's "how many holidays exist," not "how many are still untouched."
+    // What each override turned into shows separately as a footnote below.
+    if(holiday){
+      holidayCount++;
+      if(explicit) holidayOverrides[explicit] = (holidayOverrides[explicit]||0) + 1;
+    }
   }
   const workingDays = Math.max(0, weekdayCount - officialHolOnWeekday - leaveOnWeekday);
   const officePercent = workingDays>0 ? Math.round((officeDays/workingDays)*100) : 0;
-  return { weekdayCount, weekendCount, workingDays, officeDays, wfhDays, travelDays, homeDays, leaveDays, holidayCount, officePercent };
+  return { weekdayCount, weekendCount, workingDays, officeDays, wfhDays, travelDays, homeDays, leaveDays, holidayCount, holidayOverrides, officePercent };
 }
 function renderStats(data, y, m){
   const s = computeMonthStats(data, y, m);
@@ -1524,6 +1532,11 @@ function renderStats(data, y, m){
     <div class="sticky-stat leave"><b>${s.leaveDays}</b><span>Leave</span></div>
     <div class="sticky-stat holiday"><b>${s.holidayCount}</b><span>Holiday</span></div>
   `;
+  document.getElementById('holidayNotes').innerHTML = Object.entries(s.holidayOverrides).map(([typeId, count])=>{
+    const dt = dayTypeById(typeId);
+    const label = dt ? dt.label : typeId;
+    return `<div class="hn-row">&#9733; <b>${count}</b> holiday${count===1?'':'s'} turned into ${escapeHtml(label)}</div>`;
+  }).join('');
 }
 
 /* ---------- Analytics tab ---------- */
@@ -2337,6 +2350,15 @@ setInterval(checkForNewVersion, 10 * 1000);
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') checkForNewVersion(); });
 window.addEventListener('focus', checkForNewVersion);
 window.addEventListener('pageshow', checkForNewVersion);
+
+// Mobile browsers throttle/suspend the 20s pull interval below while the app
+// is backgrounded (screen off, app switched away) — without this, reopening
+// it would just sit on stale data until that timer happened to fire again.
+// This makes "come back to the app" itself the trigger for an instant pull.
+function pullOnResume(){ if(isCloudConfigured()) pullFromCloud(false); }
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') pullOnResume(); });
+window.addEventListener('focus', pullOnResume);
+window.addEventListener('pageshow', pullOnResume);
 
 (async function init(){
   await loadTags();

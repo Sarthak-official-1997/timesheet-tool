@@ -2,7 +2,10 @@
 
 const webpush = require('web-push');
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
+// Strips a trailing /rest/v1(/) or slash — guards against the env var being
+// saved with that suffix already on it, which would double up the request
+// path (".co//rest/v1/...") and break every call with a cryptic PGRST125.
+const SUPABASE_URL = String(process.env.SUPABASE_URL || '').trim().replace(/\/rest\/v1\/?$/i, '').replace(/\/+$/, '');
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
