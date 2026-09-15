@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
 <title>Field Planner</title>
 <link rel="manifest" href="/manifest.json" />
 <meta name="theme-color" content="#e8927c" />
@@ -24,6 +24,7 @@
     --line:#f0e0d8; --line-strong:#e3cabd;
   }
   *{box-sizing:border-box;}
+  html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
   body{
     margin:0;
     background:
@@ -31,6 +32,9 @@
       radial-gradient(circle at 100% 12%, #f2e8f9 0%, transparent 40%),
       var(--paper);
     color:var(--ink); font-family:'Plus Jakarta Sans',sans-serif; -webkit-font-smoothing:antialiased;
+    overscroll-behavior-y:contain;
+    padding-top:env(safe-area-inset-top, 0px);
+    padding-bottom:env(safe-area-inset-bottom, 0px);
   }
   .app{ max-width:980px; margin:0 auto; padding:32px 24px 80px; }
 
@@ -41,11 +45,13 @@
   .month-label{ font-family:'Fraunces',serif; font-size:20px; font-weight:500; min-width:190px; text-align:center; }
   .nav-btn{ background:var(--paper-raised); border:1px solid var(--line-strong); color:var(--ink); width:30px;height:30px; border-radius:50%; cursor:pointer; font-size:15px; line-height:1; display:flex;align-items:center;justify-content:center; }
   .nav-btn:hover{background:var(--accent-soft); border-color:var(--accent);}
-  .pill-btn{ font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:600; color:var(--ink-soft); background:none; border:1px solid var(--line); border-radius:20px; padding:5px 12px; cursor:pointer; }
+  .pill-btn{ font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:600; color:var(--ink-soft); background:none; border:1px solid var(--line); border-radius:20px; padding:5px 12px; cursor:pointer; touch-action:manipulation; }
   .pill-btn:hover{border-color:var(--accent); color:var(--accent-deep);}
   .pill-btn.synced{color:var(--sage); border-color:var(--sage);}
 
   .countdown{ display:flex; align-items:center; gap:16px; background:linear-gradient(120deg, var(--lavender-soft), var(--accent-soft)); border:1px solid var(--line-strong); border-radius:16px; padding:16px 20px; margin-bottom:16px; }
+  .ios-install-banner{ display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--sky-soft); border:1px solid var(--sky); border-radius:12px; padding:10px 14px; margin-bottom:14px; font-size:13px; color:var(--ink); }
+  .ios-install-banner button{ border:none; background:none; font-size:18px; line-height:1; color:var(--ink-soft); cursor:pointer; padding:2px 4px; }
   .countdown .num{ font-family:'Fraunces',serif; font-weight:700; font-size:34px; color:var(--ink); line-height:1; min-width:56px; }
   .countdown .num small{ font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:600; color:var(--ink-soft); display:block; margin-top:2px; }
   .countdown .details{flex:1;}
@@ -101,7 +107,7 @@
   .weekdays{ display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:4px; }
   .weekdays div{ font-size:11.5px; font-weight:600; color:var(--ink-soft); padding:0 4px 8px; border-bottom:1px solid var(--line); }
   .grid{ display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:100px; gap:6px; }
-  .cell{ background:var(--paper-raised); position:relative; padding:8px; cursor:pointer; transition:all .15s; overflow:hidden; border-radius:10px; border:1px solid var(--line); }
+  .cell{ background:var(--paper-raised); position:relative; padding:8px; cursor:pointer; transition:all .15s; overflow:hidden; border-radius:10px; border:1px solid var(--line); -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; touch-action:manipulation; }
   .cell.empty{ background:transparent; border:none; cursor:default; }
   .cell.dimmed{opacity:0.32;}
   .cell:hover:not(.empty){box-shadow:0 4px 14px rgba(59,42,74,0.08); border-color:var(--accent); transform:translateY(-1px);}
@@ -126,6 +132,11 @@
 
   .cell .quick-actions{ position:absolute; inset:0; display:flex; flex-wrap:wrap; align-content:flex-end; justify-content:center; gap:3px; padding:5px; opacity:0; pointer-events:none; transition:opacity .12s ease; background:rgba(255,253,251,0.94); border-radius:10px; z-index:2; }
   .cell:hover:not(.empty) .quick-actions{opacity:1; pointer-events:auto;}
+  .cell.touch-active:not(.empty) .quick-actions{opacity:1; pointer-events:auto;}
+  .quick-actions .qa-btn{ width:26px; height:26px; font-size:12px; }
+  @media (hover:none){
+    .cell .quick-actions{ transition:opacity .08s ease; }
+  }
   .quick-actions .qa-btn{ border:none; border-radius:6px; font-size:10px; font-weight:800; color:#fff; width:20px; height:20px; display:flex; align-items:center; justify-content:center; cursor:pointer; line-height:1; box-shadow:0 1px 3px rgba(59,42,74,0.25); }
   .quick-actions .qa-btn.active{outline:2px solid var(--ink); outline-offset:1px;}
   .quick-actions .qa-btn:hover{transform:scale(1.1);}
@@ -182,12 +193,17 @@
   .save-indicator.show{opacity:1;}
 
   @media (max-width:640px){
-    .grid{grid-auto-rows:84px;}
+    .app{padding:20px 10px 70px;}
+    .grid{grid-auto-rows:78px; gap:4px;}
+    .cell{padding:5px;}
+    .cell .num{font-size:13.5px;}
     .cell .plan-preview{display:none;}
-    .month-nav{width:100%; justify-content:space-between;}
+    .month-nav{width:100%;}
     .countdown{flex-wrap:wrap;}
     .stats-row{grid-template-columns:repeat(3,1fr);}
     .stat-card.percent{grid-column:1 / -1;}
+    .quick-actions .qa-btn{width:22px; height:22px; font-size:10px;}
+    .modal textarea, .leave-name-input, .add-check input{font-size:16px;}
   }
 </style>
 </head>
@@ -204,7 +220,13 @@
       <button class="pill-btn" id="settingsBtn">⚙ Quick actions</button>
       <button class="pill-btn" id="syncBtn">Cloud sync</button>
       <button class="pill-btn" id="notifBtn">🔔 Notifications</button>
+      <button class="pill-btn" id="installBtn" hidden>⬇ Install app</button>
     </div>
+  </div>
+
+  <div class="ios-install-banner" id="iosInstallBanner" hidden>
+    <span>Install this app: tap <strong>Share</strong> <span aria-hidden="true">&#x2191;</span> then <strong>Add to Home Screen</strong>.</span>
+    <button type="button" id="iosInstallDismiss" aria-label="Dismiss">&times;</button>
   </div>
 
   <div class="countdown" id="countdown"></div>
@@ -264,8 +286,12 @@
   <div class="modal">
     <button class="modal-close" id="settingsCloseBtn">&times;</button>
     <h2>Quick actions</h2>
-    <div class="sub">Choose which day types show as one-click buttons when you hover over a calendar day. Click a shortcut to set it, click again to clear it.</div>
+    <div class="sub">Choose which day types show as one-click buttons — hover over a calendar day on desktop, or long-press it on phone. Tap a shortcut to set it, tap again to clear it.</div>
     <div class="settings-list" id="quickSettingsList"></div>
+    <div class="modal-actions" id="settingsInstallRow" hidden>
+      <div class="sub" style="margin:0;" id="settingsInstallHint">Install this app on your phone for full-screen, one-tap access.</div>
+      <button class="btn-primary" id="settingsInstallBtn" type="button">⬇ Install app</button>
+    </div>
   </div>
 </div>
 
@@ -713,7 +739,22 @@ async function renderCalendar(){
       btn.addEventListener('click', (e)=>quickSetDayType(e, day, btn.dataset.daytype));
     });
 
-    cell.addEventListener('click', ()=>openModal(day));
+    let longPressFired = false, touchTimer = null;
+    cell.addEventListener('touchstart', ()=>{
+      longPressFired = false;
+      touchTimer = setTimeout(()=>{
+        longPressFired = true;
+        document.querySelectorAll('.cell.touch-active').forEach(c=>{ if(c!==cell) c.classList.remove('touch-active'); });
+        cell.classList.toggle('touch-active');
+        if(navigator.vibrate) navigator.vibrate(10);
+      }, 420);
+    }, {passive:true});
+    cell.addEventListener('touchend', ()=>clearTimeout(touchTimer));
+    cell.addEventListener('touchmove', ()=>clearTimeout(touchTimer));
+    cell.addEventListener('click', ()=>{
+      if(longPressFired){ longPressFired = false; return; }
+      openModal(day);
+    });
     cell.addEventListener('mouseenter', (e)=>showTooltip(e, day, dayData, tag, holiday));
     cell.addEventListener('mousemove', (e)=>positionTooltip(e));
     cell.addEventListener('mouseleave', hideTooltip);
@@ -991,9 +1032,73 @@ document.addEventListener('keydown', (e)=>{
   if(e.key==='ArrowRight'){ viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth()+1, 1); renderCalendar(); }
 });
 
+document.addEventListener('click', (e)=>{
+  if(!e.target.closest('.cell.touch-active')){
+    document.querySelectorAll('.cell.touch-active').forEach(c=>c.classList.remove('touch-active'));
+  }
+});
+
 document.getElementById('prevMonth').addEventListener('click', ()=>{ viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth()-1, 1); renderCalendar(); });
 document.getElementById('nextMonth').addEventListener('click', ()=>{ viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth()+1, 1); renderCalendar(); });
 document.getElementById('gotoToday').addEventListener('click', ()=>{ viewDate = new Date(today.getFullYear(), today.getMonth(), 1); renderCalendar(); });
+
+/* ---------- Install prompt (Android/Chrome + iOS Safari) ---------- */
+let deferredInstallPrompt = null;
+const installBtn = document.getElementById('installBtn');
+const settingsInstallRow = document.getElementById('settingsInstallRow');
+const settingsInstallBtn = document.getElementById('settingsInstallBtn');
+const settingsInstallHint = document.getElementById('settingsInstallHint');
+
+function isStandalone(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+function isIos(){ return /iphone|ipad|ipod/i.test(navigator.userAgent); }
+
+function updateInstallUI(){
+  if(isStandalone()){ installBtn.hidden = true; settingsInstallRow.hidden = true; return; }
+  if(deferredInstallPrompt){
+    installBtn.hidden = false;
+    settingsInstallRow.hidden = false;
+    settingsInstallHint.textContent = 'Install this app on your phone for full-screen, one-tap access.';
+    settingsInstallBtn.hidden = false;
+  } else if(isIos()){
+    installBtn.hidden = true;
+    settingsInstallRow.hidden = false;
+    settingsInstallHint.textContent = 'To install: tap Share ↑ then "Add to Home Screen".';
+    settingsInstallBtn.hidden = true;
+  } else {
+    installBtn.hidden = true;
+    settingsInstallRow.hidden = true;
+  }
+}
+
+async function runInstallPrompt(){
+  if(!deferredInstallPrompt) return;
+  installBtn.hidden = true;
+  settingsInstallBtn.hidden = true;
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  updateInstallUI();
+}
+installBtn.addEventListener('click', runInstallPrompt);
+settingsInstallBtn.addEventListener('click', runInstallPrompt);
+
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  updateInstallUI();
+});
+window.addEventListener('appinstalled', ()=>{ deferredInstallPrompt = null; updateInstallUI(); });
+updateInstallUI();
+
+if(isIos() && !isStandalone() && !localStorage.getItem('_ios_install_dismissed')){
+  document.getElementById('iosInstallBanner').hidden = false;
+}
+document.getElementById('iosInstallDismiss').addEventListener('click', ()=>{
+  document.getElementById('iosInstallBanner').hidden = true;
+  localStorage.setItem('_ios_install_dismissed', '1');
+});
 
 (async function init(){
   await loadTags();
