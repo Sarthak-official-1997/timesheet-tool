@@ -12,6 +12,7 @@
 <link rel="apple-touch-icon" href="/icons/icon-192.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer onload="if(window.initGoogleDrive) initGoogleDrive();"></script>
 <style>
   :root{
     --ink:#3b2a4a; --ink-soft:#8577a0;
@@ -201,6 +202,26 @@
   .btn-primary:hover{background:#291d38;}
   .btn-text{ background:none; border:none; color:var(--ink-soft); font-size:13px; font-weight:500; cursor:pointer; }
   .btn-text:hover{color:var(--rose);}
+  .btn-outline{ background:none; border:1px solid var(--line-strong); color:var(--ink); border-radius:20px; padding:9px 16px; font-size:13px; font-weight:600; cursor:pointer; }
+  .btn-outline:hover{ border-color:var(--accent); color:var(--accent-deep); }
+  .btn-outline:disabled, .btn-primary:disabled{ opacity:0.45; cursor:default; }
+
+  .backup-row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .bk-select{ font-family:'Plus Jakarta Sans',sans-serif; font-size:12.5px; font-weight:600; color:var(--ink); border:1px solid var(--line-strong); border-radius:14px; padding:7px 10px; background:var(--paper); cursor:pointer; }
+  .snapshot-list{ display:flex; flex-direction:column; gap:6px; margin-top:6px; }
+  .snapshot-item{ display:flex; align-items:center; justify-content:space-between; background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:8px 12px; font-size:12.5px; }
+  .snapshot-item button{ border:none; background:none; color:var(--accent-deep); font-weight:700; font-size:12px; cursor:pointer; }
+
+  .backup-banner[hidden]{ display:none; }
+  .backup-banner{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; background:var(--sky-soft); border:1px solid var(--sky); border-radius:14px; padding:12px 16px; margin-bottom:16px; font-size:12.5px; font-weight:600; color:var(--ink); }
+  .backup-banner .bb-actions{ display:flex; gap:8px; flex-shrink:0; }
+  .backup-banner button{ border:none; border-radius:14px; padding:7px 13px; font-size:11.5px; font-weight:700; cursor:pointer; }
+  .backup-banner #backupBannerExport{ background:var(--ink); color:#fff; }
+  .backup-banner #backupBannerDismiss{ background:none; color:var(--sky-deep); text-decoration:underline; }
+
+  .restore-options{ display:flex; flex-direction:column; gap:9px; margin-top:16px; }
+  .restore-options button{ width:100%; }
+
   .save-indicator{ font-size:11px; font-weight:600; color:var(--sage); position:fixed; bottom:18px; right:18px; background:var(--paper-raised); border:1px solid var(--line); padding:7px 14px; border-radius:20px; opacity:0; transition:opacity .3s; }
   .save-indicator.show{opacity:1;}
 
@@ -362,6 +383,13 @@
   </div>
 
   <div id="calendarView">
+    <div class="backup-banner" id="backupBanner" hidden>
+      <span id="backupBannerText"></span>
+      <div class="bb-actions">
+        <button type="button" id="backupBannerExport">Back up now</button>
+        <button type="button" id="backupBannerDismiss">Not now</button>
+      </div>
+    </div>
     <div class="catchup-banner" id="catchupBanner" hidden>
       <div class="cb-title">⚠️ <span id="catchupBannerCount"></span> unlogged this week</div>
       <div class="cb-list" id="catchupBannerList"></div>
@@ -473,6 +501,51 @@
       <div class="sub" style="margin:0;" id="settingsInstallHint">Install this app on your phone for full-screen, one-tap access.</div>
       <button class="btn-primary" id="settingsInstallBtn" type="button">⬇ Install app</button>
     </div>
+
+    <div class="field-label" style="margin-top:18px;">Backup &amp; restore</div>
+    <div class="sub" style="margin-top:2px;">Your data lives on this device — export it as a file every so often so nothing's ever lost.</div>
+    <div class="backup-row">
+      <button class="btn-primary" id="exportBackupBtn" type="button">⬇ Export backup</button>
+      <button class="btn-outline" id="importBackupBtn" type="button">⬆ Import backup</button>
+    </div>
+    <input type="file" id="importBackupFile" accept="application/json" hidden>
+
+    <div class="modal-actions">
+      <div class="sub" style="margin:0;" id="driveStatusHint">Google Drive backup: not connected</div>
+      <button class="btn-primary" id="driveConnectBtn" type="button" disabled>Connect Google Drive</button>
+    </div>
+    <div class="backup-row" id="driveActionsRow" hidden>
+      <button class="btn-outline" id="driveBackupNowBtn" type="button">Back up now</button>
+      <button class="btn-outline" id="driveRestoreBtn" type="button">Restore from Drive</button>
+    </div>
+
+    <div class="modal-actions">
+      <div class="sub" style="margin:0;">Remind me to back up</div>
+      <select id="backupIntervalSelect" class="bk-select">
+        <option value="0">Off</option>
+        <option value="1">Daily</option>
+        <option value="2">Every 2 days</option>
+        <option value="7">Weekly</option>
+      </select>
+    </div>
+
+    <div id="snapshotSection" hidden>
+      <div class="field-label">Recent auto-backups (undo a bad sync)</div>
+      <div id="snapshotList" class="snapshot-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="restoreOverlay">
+  <div class="modal">
+    <h2>Welcome back?</h2>
+    <div class="sub">This device has no planner data yet. If you're reinstalling or switching phones, restore it here instead of starting over.</div>
+    <div class="restore-options">
+      <button class="btn-primary" id="restoreImportBtn" type="button">⬆ Import a backup file</button>
+      <button class="btn-outline" id="restoreDriveBtn" type="button">Restore from Google Drive</button>
+      <button class="btn-outline" id="restoreSyncBtn" type="button">I have a Cloud sync code</button>
+    </div>
+    <button class="btn-text" id="restoreSkipBtn" type="button" style="margin-top:14px;">Start fresh instead</button>
   </div>
 </div>
 
@@ -655,6 +728,22 @@ async function pushToCloud(){
     updateSyncPill(true);
   }catch(e){ console.error('cloud push failed', e); updateSyncPill(false, true); }
 }
+// Rolling local safety net: snapshot what's on this device right before a
+// cloud pull overwrites anything, so a stale/bad sync can be undone. Keeps
+// the last 3 snapshots (see settings -> "Recent auto-backups").
+function snapshotLocalData(){
+  try{
+    const snap = { at: Date.now(), data: collectLocalData() };
+    if(Object.keys(snap.data).length===0) return;
+    const keys = JSON.parse(localStorage.getItem('_snapshot_keys') || '[]');
+    const snapKey = `_snapshot_${snap.at}`;
+    localStorage.setItem(snapKey, JSON.stringify(snap));
+    keys.push(snapKey);
+    while(keys.length > 3) localStorage.removeItem(keys.shift());
+    localStorage.setItem('_snapshot_keys', JSON.stringify(keys));
+  }catch(e){ console.error('snapshot failed', e); }
+}
+
 async function pullFromCloud(showFlash){
   if(!isCloudConfigured()) return;
   const c = cloudConfig();
@@ -664,6 +753,17 @@ async function pullFromCloud(showFlash){
     });
     const rows = await res.json();
     if(rows && rows[0] && rows[0].data){
+      const incomingCount = Object.keys(rows[0].data).length;
+      const localCount = Object.keys(collectLocalData()).length;
+      // Refuse a pull that looks suspiciously emptier than what's already
+      // here — a genuine multi-device sync should only ever grow the data,
+      // never wipe most of it out in one shot.
+      if(localCount >= 3 && incomingCount < localCount / 2){
+        console.error('cloud pull looked suspicious, skipped', { incomingCount, localCount });
+        updateSyncPill(false, true);
+        return;
+      }
+      snapshotLocalData();
       Object.entries(rows[0].data).forEach(([k,v])=>{ if(v!=null) localStorage.setItem(k,v); });
       monthCache = {};
       await loadTags(); renderTagbar(); await renderCalendar(); await renderCountdown();
@@ -709,6 +809,246 @@ document.getElementById('syncBtn').addEventListener('click', async ()=>{
   if(copied) alert('Cloud sync is on. Your code (copied to clipboard):\n\n' + finalCode + '\n\nPaste it into Cloud sync on your other device to link it to this data.');
   else prompt('Cloud sync is on. Copy this code to use on your other device:', finalCode);
 });
+
+/* ---------- Backup & restore ---------- */
+function buildBackupPayload(){
+  return { app: 'field-planner-backup', version: 1, exportedAt: new Date().toISOString(), syncId: getSyncId(), data: collectLocalData() };
+}
+function todayDateStr(){
+  return `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+}
+function hasAnyLocalData(){
+  for(let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    if(k==='tags' || (k && k.startsWith('month:'))) return true;
+  }
+  return false;
+}
+async function applyBackupPayload(payload, confirmFirst){
+  if(!payload || !payload.data || typeof payload.data !== 'object'){ alert('That backup looks invalid or corrupted.'); return; }
+  const monthCount = Object.keys(payload.data).filter(k=>k.startsWith('month:')).length;
+  if(confirmFirst && !confirm(`Restore ${monthCount} month(s) from this backup? This overwrites any matching data already on this device.`)) return;
+  Object.entries(payload.data).forEach(([k,v])=>{ if(v!=null) localStorage.setItem(k, v); });
+  monthCache = {};
+  await loadTags(); renderTagbar(); await renderCalendar(); await renderCountdown();
+  localStorage.setItem('_last_backup_at', String(Date.now()));
+  localStorage.setItem('_restore_prompt_dismissed', '1');
+  flashSaved('Restored');
+}
+
+document.getElementById('exportBackupBtn').addEventListener('click', async ()=>{
+  const json = JSON.stringify(buildBackupPayload(), null, 2);
+  const filename = `field-planner-backup-${todayDateStr()}.json`;
+  const file = new File([json], filename, { type: 'application/json' });
+  if(navigator.share && navigator.canShare && navigator.canShare({ files: [file] })){
+    try{
+      await navigator.share({ files: [file], title: 'Field Planner backup' });
+      localStorage.setItem('_last_backup_at', String(Date.now()));
+      flashSaved('Backup shared');
+      return;
+    }catch(e){ /* user cancelled the share sheet — fall back to a plain download */ }
+  }
+  const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  localStorage.setItem('_last_backup_at', String(Date.now()));
+  flashSaved('Backup downloaded');
+});
+
+document.getElementById('importBackupBtn').addEventListener('click', ()=>document.getElementById('importBackupFile').click());
+document.getElementById('importBackupFile').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  try{
+    const payload = JSON.parse(await file.text());
+    await applyBackupPayload(payload, true);
+  }catch(err){ alert("Could not read that file — is it a Field Planner backup?"); }
+});
+
+/* ---------- Recent auto-backups (rolling local snapshots) ---------- */
+function renderSnapshotList(){
+  const keys = JSON.parse(localStorage.getItem('_snapshot_keys') || '[]');
+  const section = document.getElementById('snapshotSection');
+  const list = document.getElementById('snapshotList');
+  const validEntries = keys.map(k=>({ k, raw: localStorage.getItem(k) })).filter(e=>e.raw);
+  if(validEntries.length===0){ section.hidden = true; return; }
+  section.hidden = false;
+  list.innerHTML = validEntries.slice().reverse().map(({k, raw})=>{
+    const snap = JSON.parse(raw);
+    return `<div class="snapshot-item"><span>${new Date(snap.at).toLocaleString()}</span><button type="button" data-key="${k}">Restore</button></div>`;
+  }).join('');
+  list.querySelectorAll('button[data-key]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const raw = localStorage.getItem(btn.dataset.key);
+      if(!raw) return;
+      const snap = JSON.parse(raw);
+      if(!confirm('Restore your data to how it was at ' + new Date(snap.at).toLocaleString() + '? This overwrites current data.')) return;
+      await applyBackupPayload({ data: snap.data }, false);
+    });
+  });
+}
+
+/* ---------- Backup reminder (daily / every 2 days / weekly / off) ---------- */
+function loadBackupIntervalDays(){ return parseInt(localStorage.getItem('_backup_interval_days') || '7', 10); }
+document.getElementById('backupIntervalSelect').value = String(loadBackupIntervalDays());
+document.getElementById('backupIntervalSelect').addEventListener('change', (e)=>{
+  localStorage.setItem('_backup_interval_days', e.target.value);
+  checkBackupReminder();
+});
+function checkBackupReminder(){
+  const banner = document.getElementById('backupBanner');
+  const intervalDays = loadBackupIntervalDays();
+  if(intervalDays===0 || !hasAnyLocalData()){ banner.hidden = true; return; }
+  const lastBackupAt = parseInt(localStorage.getItem('_last_backup_at') || '0', 10);
+  const daysSince = (Date.now() - lastBackupAt) / 86400000;
+  if(daysSince < intervalDays){ banner.hidden = true; return; }
+  if(localStorage.getItem('_backup_reminder_dismissed_date') === todayDateStr()){ banner.hidden = true; return; }
+  banner.hidden = false;
+  document.getElementById('backupBannerText').textContent = lastBackupAt
+    ? `It's been ${Math.floor(daysSince)} day(s) since your last backup.`
+    : "You haven't backed up your data yet.";
+}
+document.getElementById('backupBannerExport').addEventListener('click', ()=>{
+  document.getElementById('exportBackupBtn').click();
+  document.getElementById('backupBanner').hidden = true;
+});
+document.getElementById('backupBannerDismiss').addEventListener('click', ()=>{
+  localStorage.setItem('_backup_reminder_dismissed_date', todayDateStr());
+  document.getElementById('backupBanner').hidden = true;
+});
+
+/* ---------- Fresh-install restore prompt ---------- */
+function maybeShowRestorePrompt(){
+  if(hasAnyLocalData()) return;
+  if(localStorage.getItem('_restore_prompt_dismissed')==='1') return;
+  document.getElementById('restoreOverlay').classList.add('show');
+}
+document.getElementById('restoreSkipBtn').addEventListener('click', ()=>{
+  localStorage.setItem('_restore_prompt_dismissed', '1');
+  document.getElementById('restoreOverlay').classList.remove('show');
+});
+document.getElementById('restoreImportBtn').addEventListener('click', ()=>{
+  document.getElementById('restoreOverlay').classList.remove('show');
+  document.getElementById('importBackupFile').click();
+});
+document.getElementById('restoreSyncBtn').addEventListener('click', ()=>{
+  document.getElementById('restoreOverlay').classList.remove('show');
+  document.getElementById('syncBtn').click();
+});
+
+/* ---------- Google Drive backup ----------
+   Fill in GOOGLE_CLIENT_ID (from Google Cloud Console -> Credentials) to
+   enable this. Until then the Connect button stays disabled and Drive
+   restore is skipped everywhere it's offered. */
+const GOOGLE_CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const DRIVE_BACKUP_FILENAME = 'field-planner-backup.json';
+let driveTokenClient = null;
+let driveAccessToken = null;
+
+function isGoogleConfigured(){ return GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.startsWith('YOUR_'); }
+
+function updateDriveUI(){
+  const connected = localStorage.getItem('_drive_connected')==='1';
+  document.getElementById('driveStatusHint').textContent = !isGoogleConfigured()
+    ? 'Google Drive backup: not set up yet'
+    : `Google Drive backup: ${connected ? 'connected' : 'not connected'}`;
+  document.getElementById('driveConnectBtn').textContent = connected ? 'Reconnect Google Drive' : 'Connect Google Drive';
+  document.getElementById('driveActionsRow').hidden = !connected;
+}
+
+function initGoogleDrive(){
+  if(!isGoogleConfigured() || typeof google === 'undefined' || !google.accounts) { updateDriveUI(); return; }
+  document.getElementById('driveConnectBtn').disabled = false;
+  driveTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: DRIVE_SCOPE,
+    callback: (resp)=>{
+      if(resp.error){ alert('Google sign-in failed: ' + resp.error); return; }
+      driveAccessToken = { token: resp.access_token, expiresAt: Date.now() + (resp.expires_in*1000) };
+      localStorage.setItem('_drive_connected', '1');
+      updateDriveUI();
+      backupToDrive(false);
+    }
+  });
+  updateDriveUI();
+}
+
+function ensureDriveToken(interactive){
+  if(driveAccessToken && driveAccessToken.expiresAt > Date.now()+30000) return Promise.resolve(driveAccessToken.token);
+  if(!driveTokenClient) return Promise.resolve(null);
+  return new Promise((resolve)=>{
+    driveTokenClient.callback = (resp)=>{
+      if(resp.error){ resolve(null); return; }
+      driveAccessToken = { token: resp.access_token, expiresAt: Date.now() + (resp.expires_in*1000) };
+      resolve(resp.access_token);
+    };
+    driveTokenClient.requestAccessToken({ prompt: interactive ? 'consent' : '' });
+  });
+}
+
+async function findDriveBackupFile(token){
+  const q = encodeURIComponent(`name='${DRIVE_BACKUP_FILENAME}' and trashed=false`);
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,modifiedTime)`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if(!res.ok) return null;
+  const json = await res.json();
+  return (json.files && json.files[0]) || null;
+}
+
+async function backupToDrive(interactive){
+  const token = await ensureDriveToken(interactive);
+  if(!token){ if(interactive) alert('Could not connect to Google Drive.'); return false; }
+  const existing = await findDriveBackupFile(token);
+  const boundary = 'planner-boundary';
+  const metaPart = existing ? '{}' : JSON.stringify({ name: DRIVE_BACKUP_FILENAME, mimeType: 'application/json' });
+  const body =
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metaPart}\r\n` +
+    `--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(buildBackupPayload())}\r\n--${boundary}--`;
+  const url = existing
+    ? `https://www.googleapis.com/upload/drive/v3/files/${existing.id}?uploadType=multipart`
+    : `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
+  const res = await fetch(url, {
+    method: existing ? 'PATCH' : 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': `multipart/related; boundary=${boundary}` },
+    body
+  });
+  if(res.ok){ localStorage.setItem('_last_backup_at', String(Date.now())); flashSaved('Backed up to Drive'); return true; }
+  if(interactive) alert('Drive backup failed — try again in a bit.');
+  return false;
+}
+
+async function restoreFromDrive(){
+  const token = await ensureDriveToken(true);
+  if(!token){ alert('Could not connect to Google Drive.'); return; }
+  const existing = await findDriveBackupFile(token);
+  if(!existing){ alert('No backup file found in Google Drive yet.'); return; }
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${existing.id}?alt=media`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if(!res.ok){ alert('Could not download the Drive backup — try again.'); return; }
+  await applyBackupPayload(await res.json(), true);
+}
+
+document.getElementById('driveConnectBtn').addEventListener('click', async ()=>{
+  if(!isGoogleConfigured()){ alert("Google Drive backup isn't set up yet — see the app's setup notes."); return; }
+  if(!driveTokenClient){ initGoogleDrive(); }
+  await ensureDriveToken(true);
+});
+document.getElementById('driveBackupNowBtn').addEventListener('click', ()=>backupToDrive(true));
+document.getElementById('driveRestoreBtn').addEventListener('click', ()=>restoreFromDrive());
+document.getElementById('restoreDriveBtn').addEventListener('click', async ()=>{
+  document.getElementById('restoreOverlay').classList.remove('show');
+  if(!isGoogleConfigured()){ alert("Google Drive backup isn't set up yet — see the app's setup notes."); return; }
+  if(!driveTokenClient){ initGoogleDrive(); }
+  await restoreFromDrive();
+});
+
+document.getElementById('settingsBtn').addEventListener('click', ()=>{ renderSnapshotList(); updateDriveUI(); });
 
 /* ---------- Push notifications ---------- */
 const VAPID_PUBLIC_KEY = 'BEqh5UEkvgKbRd6HwU8irO5t6ykzzjdy77aYjqq6Gj0jy1zweqdZuOwhn2dtIyba4DHM-BjBAJR2PpQO5XPxnQQ';
@@ -1745,12 +2085,19 @@ window.addEventListener('focus', checkForNewVersion);
 window.addEventListener('pageshow', checkForNewVersion);
 
 (async function init(){
+  maybeShowRestorePrompt();
   await loadTags();
   renderTagbar();
   await applyQuickLogFromUrl();
   await renderCalendar();
   await renderCountdown();
   await checkCatchupBanner();
+  checkBackupReminder();
+  initGoogleDrive();
+  if(isGoogleConfigured() && localStorage.getItem('_drive_connected')==='1' && loadBackupIntervalDays()>0){
+    const lastBackupAt = parseInt(localStorage.getItem('_last_backup_at') || '0', 10);
+    if((Date.now() - lastBackupAt) / 86400000 >= loadBackupIntervalDays()) backupToDrive(false);
+  }
   updateSyncPill(true);
   if(isCloudConfigured()) await pullFromCloud(false);
   setInterval(()=>{ pullFromCloud(false); }, 20000);
