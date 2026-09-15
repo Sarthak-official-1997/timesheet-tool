@@ -1118,7 +1118,7 @@ const updateBanner = document.getElementById('updateBanner');
 
 async function fetchVersionTag(){
   try{
-    const res = await fetch('/', {cache:'no-store'});
+    const res = await fetch('/?_vc=' + Date.now(), {cache:'no-store'});
     return res.headers.get('etag') || res.headers.get('last-modified') || null;
   }catch(e){ return null; }
 }
