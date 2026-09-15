@@ -50,8 +50,6 @@
   .pill-btn.synced{color:var(--sage); border-color:var(--sage);}
 
   .countdown{ display:flex; align-items:center; gap:16px; background:linear-gradient(120deg, var(--lavender-soft), var(--accent-soft)); border:1px solid var(--line-strong); border-radius:16px; padding:16px 20px; margin-bottom:16px; }
-  .ios-install-banner{ display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--sky-soft); border:1px solid var(--sky); border-radius:12px; padding:10px 14px; margin-bottom:14px; font-size:13px; color:var(--ink); }
-  .ios-install-banner button{ border:none; background:none; font-size:18px; line-height:1; color:var(--ink-soft); cursor:pointer; padding:2px 4px; }
   .countdown .num{ font-family:'Fraunces',serif; font-weight:700; font-size:34px; color:var(--ink); line-height:1; min-width:56px; }
   .countdown .num small{ font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:600; color:var(--ink-soft); display:block; margin-top:2px; }
   .countdown .details{flex:1;}
@@ -82,7 +80,9 @@
   .pct-bar-target{ position:absolute; top:-3px; bottom:-3px; width:2px; background:var(--ink); left:60%; opacity:0.55; }
   .info-dot{ display:inline-flex; align-items:center; justify-content:center; width:13px; height:13px; border-radius:50%; background:var(--line-strong); color:var(--paper-raised); font-size:9px; font-weight:700; margin-left:4px; cursor:help; }
   .cell.is-weekend{ background:#f7f0eb; }
-  .cell.is-weekend:hover{background:#fffef9;}
+  @media (hover:hover) and (pointer:fine){
+    .cell.is-weekend:hover{background:#fffef9;}
+  }
   .stats-note{ font-size:11px; color:var(--ink-soft); margin-bottom:18px; }
 
   .tagbar{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
@@ -110,7 +110,9 @@
   .cell{ background:var(--paper-raised); position:relative; padding:8px; cursor:pointer; transition:all .15s; overflow:hidden; border-radius:10px; border:1px solid var(--line); -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; touch-action:manipulation; }
   .cell.empty{ background:transparent; border:none; cursor:default; }
   .cell.dimmed{opacity:0.32;}
-  .cell:hover:not(.empty){box-shadow:0 4px 14px rgba(59,42,74,0.08); border-color:var(--accent); transform:translateY(-1px);}
+  @media (hover:hover) and (pointer:fine){
+    .cell:hover:not(.empty){box-shadow:0 4px 14px rgba(59,42,74,0.08); border-color:var(--accent); transform:translateY(-1px);}
+  }
   .cell .num{ font-family:'Fraunces',serif; font-size:16px; font-weight:500; color:var(--ink); }
   .cell.is-office{background:#eef7ec;}
   .cell.is-today{background:var(--lavender-soft);}
@@ -131,7 +133,9 @@
   .daytype-badge.home{background:var(--sage-deep);}
 
   .cell .quick-actions{ position:absolute; inset:0; display:flex; flex-wrap:wrap; align-content:flex-end; justify-content:center; gap:3px; padding:5px; opacity:0; pointer-events:none; transition:opacity .12s ease; background:rgba(255,253,251,0.94); border-radius:10px; z-index:2; }
-  .cell:hover:not(.empty) .quick-actions{opacity:1; pointer-events:auto;}
+  @media (hover:hover) and (pointer:fine){
+    .cell:hover:not(.empty) .quick-actions{opacity:1; pointer-events:auto;}
+  }
   .cell.touch-active:not(.empty) .quick-actions{opacity:1; pointer-events:auto;}
   .quick-actions .qa-btn{ width:26px; height:26px; font-size:12px; }
   @media (hover:none){
@@ -200,16 +204,24 @@
   @keyframes update-spin{ to{ transform:rotate(360deg); } }
 
   @media (max-width:640px){
-    .app{padding:20px 10px 70px;}
-    .grid{grid-auto-rows:78px; gap:4px;}
-    .cell{padding:5px;}
-    .cell .num{font-size:13.5px;}
+    .app{padding:16px 6px 70px;}
+    .grid{grid-auto-rows:58px; gap:3px;}
+    .weekdays div{padding:0 2px 6px; font-size:10px;}
+    .cell{padding:3px 3px 2px; border-radius:8px;}
+    .cell .num{font-size:12px;}
+    .cell .holiday-label, .cell .leave-label{font-size:8px; margin-top:0;}
     .cell .plan-preview{display:none;}
+    .cell .city-name{font-size:8px; bottom:3px; left:4px;}
+    .cell .progress{font-size:8.5px; bottom:3px; right:4px;}
+    .daytype-badge{width:14px; height:14px; font-size:8px; top:3px; right:3px;}
     .month-nav{width:100%;}
     .countdown{flex-wrap:wrap;}
-    .stats-row{grid-template-columns:repeat(3,1fr);}
+    .stats-row{grid-template-columns:repeat(3,1fr); gap:6px;}
+    .stat-card{padding:9px 8px;}
     .stat-card.percent{grid-column:1 / -1;}
-    .quick-actions .qa-btn{width:22px; height:22px; font-size:10px;}
+    .quick-actions{gap:2px; padding:3px;}
+    .quick-actions .qa-btn{width:20px; height:20px; font-size:9px;}
+    .modal{padding:20px 18px;}
     .modal textarea, .leave-name-input, .add-check input{font-size:16px;}
   }
 </style>
@@ -229,11 +241,6 @@
       <button class="pill-btn" id="notifBtn">🔔 Notifications</button>
       <button class="pill-btn" id="installBtn" hidden>⬇ Install app</button>
     </div>
-  </div>
-
-  <div class="ios-install-banner" id="iosInstallBanner" hidden>
-    <span>Install this app: tap <strong>Share</strong> <span aria-hidden="true">&#x2191;</span> then <strong>Add to Home Screen</strong>.</span>
-    <button type="button" id="iosInstallDismiss" aria-label="Dismiss">&times;</button>
   </div>
 
   <div class="countdown" id="countdown"></div>
@@ -767,9 +774,11 @@ async function renderCalendar(){
       if(longPressFired){ longPressFired = false; return; }
       openModal(day);
     });
-    cell.addEventListener('mouseenter', (e)=>showTooltip(e, day, dayData, tag, holiday));
-    cell.addEventListener('mousemove', (e)=>positionTooltip(e));
-    cell.addEventListener('mouseleave', hideTooltip);
+    if(supportsHoverTooltip){
+      cell.addEventListener('mouseenter', (e)=>showTooltip(e, day, dayData, tag, holiday));
+      cell.addEventListener('mousemove', (e)=>positionTooltip(e));
+      cell.addEventListener('mouseleave', hideTooltip);
+    }
     grid.appendChild(cell);
   }
 }
@@ -802,6 +811,7 @@ function renderProgressBadge(dayData){
 function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 
 /* ---------- Tooltip ---------- */
+const supportsHoverTooltip = window.matchMedia('(hover:hover) and (pointer:fine)').matches;
 function showTooltip(e, day, dayData, tag, holiday){
   const tt = document.getElementById('tooltip');
   const explicitType = dayData && dayData.dayType;
@@ -879,6 +889,8 @@ function showTagForm(bar, addBtn){
 
 /* ---------- Modal ---------- */
 async function openModal(day){
+  hideTooltip();
+  document.querySelectorAll('.cell.touch-active').forEach(c=>c.classList.remove('touch-active'));
   selectedDay = day;
   const key = monthKey(viewDate);
   const data = await loadMonth(key);
@@ -1049,6 +1061,10 @@ document.addEventListener('click', (e)=>{
     document.querySelectorAll('.cell.touch-active').forEach(c=>c.classList.remove('touch-active'));
   }
 });
+window.addEventListener('scroll', ()=>{
+  hideTooltip();
+  document.querySelectorAll('.cell.touch-active').forEach(c=>c.classList.remove('touch-active'));
+}, {passive:true});
 
 document.getElementById('prevMonth').addEventListener('click', ()=>{ viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth()-1, 1); renderCalendar(); });
 document.getElementById('nextMonth').addEventListener('click', ()=>{ viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth()+1, 1); renderCalendar(); });
@@ -1104,13 +1120,6 @@ window.addEventListener('beforeinstallprompt', (e)=>{
 window.addEventListener('appinstalled', ()=>{ deferredInstallPrompt = null; updateInstallUI(); });
 updateInstallUI();
 
-if(isIos() && !isStandalone() && !localStorage.getItem('_ios_install_dismissed')){
-  document.getElementById('iosInstallBanner').hidden = false;
-}
-document.getElementById('iosInstallDismiss').addEventListener('click', ()=>{
-  document.getElementById('iosInstallBanner').hidden = true;
-  localStorage.setItem('_ios_install_dismissed', '1');
-});
 
 /* ---------- New-deploy detector ---------- */
 let knownVersionTag = null;
@@ -1141,6 +1150,7 @@ updateBanner.addEventListener('click', ()=>{
 setInterval(checkForNewVersion, 10 * 1000);
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') checkForNewVersion(); });
 window.addEventListener('focus', checkForNewVersion);
+window.addEventListener('pageshow', checkForNewVersion);
 
 (async function init(){
   await loadTags();
