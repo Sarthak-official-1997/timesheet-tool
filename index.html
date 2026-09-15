@@ -248,7 +248,7 @@
   .an-tile .mo{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; opacity:0.85; }
   .an-tile .pc{ font-family:'Fraunces',serif; font-size:17px; font-weight:600; margin-top:3px; }
   .an-tile.ok{ background:var(--sage-deep); color:#fff; }
-  .an-tile.mid{ background:#e8b39f; color:#5a2f22; }
+  .an-tile.mid{ background:#e3b23c; color:#4a3510; }
   .an-tile.low{ background:var(--rose); color:#fff; }
   .an-tile.empty{ background:var(--line); color:var(--ink-soft); opacity:0.5; cursor:default; }
   .an-tile.current{ outline:2.5px solid var(--ink); outline-offset:2px; }
@@ -617,7 +617,7 @@ const DAYTYPES = [
   {id:'wfh', label:'Work from home', color:'#5c86a8', hint:'Counts as a working day, not office.'},
   {id:'travel', label:'Travel', color:'#9a7fc4', hint:'Marked as a travel day.'},
   {id:'home', label:'Home / off', color:'#598066', hint:'A non-work day at home (not a formal leave).'},
-  {id:'leave', label:'Leave / holiday', color:'#c65b57', hint:'Reduces your total working days for the month.'}
+  {id:'leave', label:'Leave', color:'#c65b57', hint:'Your own personal leave — separate from the official UP holiday calendar. Reduces your total working days for the month.'}
 ];
 function dayTypeById(id){ return DAYTYPES.find(d=>d.id===id); }
 const DAYTYPE_LETTER = {office:'O', wfh:'W', travel:'T', home:'H', leave:'L'};
@@ -1264,7 +1264,11 @@ function computeMonthStats(data, y, m){
     else if(effective==='wfh') wfhDays++;
     else if(effective==='travel') travelDays++;
     else if(effective==='home') homeDays++;
-    if(explicit==='leave') leaveDays++;
+    // A gazetted holiday already counts as a holiday (see officialHolOnWeekday
+    // above) — if it's also marked "leave", that's not an extra leave day on
+    // top of it, it's the same day. Only count leave that isn't already a
+    // gazetted holiday, so the two never overlap.
+    if(explicit==='leave' && !isGazetted) leaveDays++;
   }
   const workingDays = Math.max(0, weekdayCount - officialHolOnWeekday - leaveOnWeekday);
   const officePercent = workingDays>0 ? Math.round((officeDays/workingDays)*100) : 0;
@@ -1319,7 +1323,7 @@ async function collectLoggedMonths(){
 
 function pctBand(pct){
   if(pct>=60) return 'ok';
-  if(pct>=45) return 'mid';
+  if(pct>=50) return 'mid';
   return 'low';
 }
 
