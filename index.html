@@ -827,8 +827,11 @@ function updateSyncPill(ok, errored){
   const btn = document.getElementById('syncBtn');
   const hint = document.getElementById('settingsSyncHint');
   if(!isCloudConfigured()){ btn.textContent = 'Cloud sync: off'; btn.className = 'pill-btn'; hint.textContent = 'Cloud sync: off'; return; }
-  if(errored){ btn.textContent = 'Cloud sync: error'; btn.className='pill-btn'; hint.textContent = 'Cloud sync: error'; return; }
-  btn.textContent = 'Cloud sync: on'; btn.className = 'pill-btn synced'; hint.textContent = 'Cloud sync: on';
+  // Showing the actual code (not just "on") lets you compare it against
+  // another device at a glance — two devices only ever share data when
+  // this exact code matches on both.
+  if(errored){ btn.textContent = 'Cloud sync: error'; btn.className='pill-btn'; hint.textContent = `Cloud sync: error · code: ${getSyncId()}`; return; }
+  btn.textContent = 'Cloud sync: on'; btn.className = 'pill-btn synced'; hint.textContent = `Cloud sync: on · code: ${getSyncId()}`;
 }
 document.getElementById('syncBtn').addEventListener('click', async ()=>{
   if(isCloudConfigured()){
