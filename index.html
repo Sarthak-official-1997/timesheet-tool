@@ -208,12 +208,15 @@
     .util-actions{ display:none; }
 
     .sticky-strip{
-      display:flex; align-items:center; gap:10px;
+      display:flex; flex-direction:column; gap:8px;
       position:sticky; top:env(safe-area-inset-top, 0px); z-index:90;
       background:var(--paper); padding:8px 0; margin:0 -6px; padding-inline:6px;
       border-bottom:1px solid transparent; transition:box-shadow .15s ease, border-color .15s ease;
     }
     .sticky-strip.stuck{ box-shadow:0 6px 14px rgba(59,42,74,0.1); border-bottom-color:var(--line-strong); }
+    .sticky-row1{ display:flex; align-items:center; gap:10px; }
+    .sticky-row2{ display:flex; align-items:center; justify-content:center; gap:14px; }
+    .sticky-row2 .month-label{ font-size:15px; min-width:0; }
     .view-toggle{ display:flex; gap:4px; background:var(--paper-raised); border:1px solid var(--line-strong); border-radius:20px; padding:2px; flex-shrink:0; }
     .vt-btn{ border:none; background:none; font-size:11px; font-weight:700; color:var(--ink-soft); padding:5px 12px; border-radius:16px; cursor:pointer; }
     .vt-btn.active{ background:var(--ink); color:var(--paper-raised); }
@@ -318,11 +321,18 @@
 
   <div id="stickyStripSentinel"></div>
   <div class="sticky-strip" id="stickyStrip">
-    <div class="view-toggle" id="viewToggle">
-      <button type="button" class="vt-btn" data-mode="week">Week</button>
-      <button type="button" class="vt-btn" data-mode="month">Month</button>
+    <div class="sticky-row1">
+      <div class="view-toggle" id="viewToggle">
+        <button type="button" class="vt-btn" data-mode="week">Week</button>
+        <button type="button" class="vt-btn" data-mode="month">Month</button>
+      </div>
+      <div id="stickyPercentWrap"></div>
     </div>
-    <div id="stickyPercentWrap"></div>
+    <div class="sticky-row2">
+      <button class="nav-btn" id="prevStickyNav">&larr;</button>
+      <div class="month-label" id="monthLabelSticky"></div>
+      <button class="nav-btn" id="nextStickyNav">&rarr;</button>
+    </div>
   </div>
 
   <div class="countdown" id="countdown"></div>
@@ -796,7 +806,7 @@ async function renderCalendar(){
   document.getElementById('grid').classList.toggle('agenda-mode', calMode==='week');
   if(calMode==='week') return renderWeekAgenda();
 
-  document.getElementById('monthLabel').textContent = `${MONTH_NAMES[viewDate.getMonth()]} ${viewDate.getFullYear()}`;
+  setMonthLabel(`${MONTH_NAMES[viewDate.getMonth()]} ${viewDate.getFullYear()}`);
   const key = monthKey(viewDate);
   const data = await loadMonth(key);
   renderStats(data);
@@ -900,9 +910,9 @@ function getWeekDates(anchor){
 async function renderWeekAgenda(){
   const dates = getWeekDates(weekAnchor);
   const first = dates[0], last = dates[6];
-  document.getElementById('monthLabel').textContent = first.getMonth()===last.getMonth()
+  setMonthLabel(first.getMonth()===last.getMonth()
     ? `${first.getDate()}–${last.getDate()} ${MONTH_NAMES[first.getMonth()]} ${first.getFullYear()}`
-    : `${first.getDate()} ${MONTH_NAMES[first.getMonth()]} – ${last.getDate()} ${MONTH_NAMES[last.getMonth()]}`;
+    : `${first.getDate()} ${MONTH_NAMES[first.getMonth()]} – ${last.getDate()} ${MONTH_NAMES[last.getMonth()]}`);
 
   const statsData = await loadMonth(monthKey(weekAnchor));
   renderStats(statsData, weekAnchor.getFullYear(), weekAnchor.getMonth());
@@ -1233,6 +1243,10 @@ document.getElementById('settingsBtn').addEventListener('click', ()=>{
 document.getElementById('settingsCloseBtn').addEventListener('click', closeSettingsModal);
 document.getElementById('settingsOverlay').addEventListener('click', (e)=>{ if(e.target.id==='settingsOverlay') closeSettingsModal(); });
 
+function setMonthLabel(text){
+  document.getElementById('monthLabel').textContent = text;
+  document.getElementById('monthLabelSticky').textContent = text;
+}
 function stepBack(){
   if(calMode==='week') weekAnchor = new Date(weekAnchor.getFullYear(), weekAnchor.getMonth(), weekAnchor.getDate()-7);
   else viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth()-1, 1);
@@ -1292,6 +1306,8 @@ window.addEventListener('scroll', ()=>{
 document.getElementById('prevMonth').addEventListener('click', stepBack);
 document.getElementById('nextMonth').addEventListener('click', stepForward);
 document.getElementById('gotoToday').addEventListener('click', stepToday);
+document.getElementById('prevStickyNav').addEventListener('click', stepBack);
+document.getElementById('nextStickyNav').addEventListener('click', stepForward);
 
 /* ---------- Mobile bottom bar ---------- */
 document.getElementById('bbSync').addEventListener('click', ()=>document.getElementById('syncBtn').click());
