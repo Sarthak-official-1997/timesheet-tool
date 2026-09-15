@@ -192,6 +192,13 @@
   .save-indicator{ font-size:11px; font-weight:600; color:var(--sage); position:fixed; bottom:18px; right:18px; background:var(--paper-raised); border:1px solid var(--line); padding:7px 14px; border-radius:20px; opacity:0; transition:opacity .3s; }
   .save-indicator.show{opacity:1;}
 
+  .update-banner{ position:fixed; left:50%; bottom:calc(18px + env(safe-area-inset-bottom, 0px)); transform:translateX(-50%) translateY(80px); z-index:200; display:flex; align-items:center; gap:9px; background:var(--ink); color:var(--paper-raised); border:none; border-radius:24px; padding:11px 20px; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 8px 24px rgba(59,42,74,0.35); opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease; }
+  .update-banner.show{opacity:1; pointer-events:auto; transform:translateX(-50%) translateY(0);}
+  .update-banner:disabled{cursor:default; opacity:0.85;}
+  .update-banner .spinner{width:14px; height:14px; border-radius:50%; border:2px solid rgba(255,255,255,0.35); border-top-color:#fff; animation:update-spin .7s linear infinite; flex-shrink:0;}
+  .update-banner .icon{font-size:14px; line-height:1;}
+  @keyframes update-spin{ to{ transform:rotate(360deg); } }
+
   @media (max-width:640px){
     .app{padding:20px 10px 70px;}
     .grid{grid-auto-rows:78px; gap:4px;}
@@ -296,6 +303,11 @@
 </div>
 
 <div class="save-indicator" id="saveIndicator">Saved</div>
+
+<button class="update-banner" id="updateBanner" type="button">
+  <span class="icon" id="updateBannerIcon">&#8635;</span>
+  <span id="updateBannerText">New version available — tap to refresh</span>
+</button>
 
 <script>
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -1100,6 +1112,35 @@ document.getElementById('iosInstallDismiss').addEventListener('click', ()=>{
   localStorage.setItem('_ios_install_dismissed', '1');
 });
 
+/* ---------- New-deploy detector ---------- */
+let knownVersionTag = null;
+const updateBanner = document.getElementById('updateBanner');
+
+async function fetchVersionTag(){
+  try{
+    const res = await fetch('/', {cache:'no-store'});
+    return res.headers.get('etag') || res.headers.get('last-modified') || null;
+  }catch(e){ return null; }
+}
+
+async function checkForNewVersion(){
+  if(updateBanner.classList.contains('show')) return;
+  const tag = await fetchVersionTag();
+  if(!tag) return;
+  if(knownVersionTag === null){ knownVersionTag = tag; return; }
+  if(tag !== knownVersionTag) updateBanner.classList.add('show');
+}
+
+updateBanner.addEventListener('click', ()=>{
+  updateBanner.disabled = true;
+  document.getElementById('updateBannerIcon').outerHTML = '<span class="spinner" id="updateBannerIcon"></span>';
+  document.getElementById('updateBannerText').textContent = 'Refreshing…';
+  window.location.reload();
+});
+
+setInterval(checkForNewVersion, 5 * 60 * 1000);
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') checkForNewVersion(); });
+
 (async function init(){
   await loadTags();
   renderTagbar();
@@ -1110,6 +1151,7 @@ document.getElementById('iosInstallDismiss').addEventListener('click', ()=>{
   setInterval(()=>{ pullFromCloud(false); }, 20000);
   await registerServiceWorker();
   await updateNotifPill();
+  checkForNewVersion();
 })();
 </script>
 

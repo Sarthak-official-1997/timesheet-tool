@@ -27,15 +27,12 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
   event.respondWith(
-    caches.match(req).then((cached) => {
-      const network = fetch(req)
-        .then((res) => {
-          if (res && res.ok) caches.open(CACHE_NAME).then((cache) => cache.put(req, res.clone()));
-          return res;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
+    fetch(req)
+      .then((res) => {
+        if (res && res.ok) caches.open(CACHE_NAME).then((cache) => cache.put(req, res.clone()));
+        return res;
+      })
+      .catch(() => caches.match(req))
   );
 });
 
