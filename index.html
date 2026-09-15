@@ -1138,8 +1138,9 @@ updateBanner.addEventListener('click', ()=>{
   window.location.reload();
 });
 
-setInterval(checkForNewVersion, 5 * 60 * 1000);
+setInterval(checkForNewVersion, 10 * 1000);
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') checkForNewVersion(); });
+window.addEventListener('focus', checkForNewVersion);
 
 (async function init(){
   await loadTags();
