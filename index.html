@@ -748,9 +748,17 @@ function getSyncId(){
   if(!id){ id = 'plan-' + Math.random().toString(36).slice(2,10); localStorage.setItem('_sync_id', id); }
   return id;
 }
+// Strips a trailing /rest/v1(/) and any trailing slashes — guards against a
+// URL saved with that suffix already on it (an easy paste mistake, since
+// that's how Supabase shows the REST endpoint in its own dashboard), which
+// would otherwise double up the path (".co//rest/v1/...") and break every
+// request with a cryptic PGRST125 "Invalid path" error.
+function normalizeSupabaseUrl(url){
+  return String(url || '').trim().replace(/\/rest\/v1\/?$/i, '').replace(/\/+$/, '');
+}
 function cloudConfig(){
   return {
-    url: localStorage.getItem('_sb_url') || DEFAULT_SUPABASE_URL,
+    url: normalizeSupabaseUrl(localStorage.getItem('_sb_url') || DEFAULT_SUPABASE_URL),
     key: localStorage.getItem('_sb_key') || DEFAULT_SUPABASE_ANON_KEY
   };
 }
