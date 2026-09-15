@@ -106,7 +106,13 @@
   .holiday-note .swatch{display:inline-flex; align-items:center; gap:5px;}
   .holiday-note .bar{width:14px; height:4px; border-radius:2px; display:inline-block;}
 
+  .weekend-toggle-row{ display:flex; justify-content:flex-end; margin-bottom:6px; }
+  .weekend-toggle{ display:flex; align-items:center; gap:5px; font-size:10.5px; font-weight:600; color:var(--ink-soft); cursor:pointer; user-select:none; }
+  .weekend-toggle input{ width:13px; height:13px; margin:0; cursor:pointer; accent-color:var(--accent-deep); }
   .weekdays{ display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:4px; }
+  .weekdays.hide-weekends{ grid-template-columns:repeat(5,1fr); }
+  .weekdays.hide-weekends .wd-weekend{ display:none; }
+  .grid.hide-weekends{ grid-template-columns:repeat(5,1fr); }
   .weekdays div{ font-size:11.5px; font-weight:600; color:var(--ink-soft); padding:0 4px 8px; border-bottom:1px solid var(--line); }
   .grid{ display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:100px; gap:6px; }
   .cell{ background:var(--paper-raised); position:relative; padding:8px; cursor:pointer; transition:all .15s; overflow:hidden; border-radius:10px; border:1px solid var(--line); -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; touch-action:manipulation; }
@@ -198,6 +204,35 @@
   .save-indicator{ font-size:11px; font-weight:600; color:var(--sage); position:fixed; bottom:18px; right:18px; background:var(--paper-raised); border:1px solid var(--line); padding:7px 14px; border-radius:20px; opacity:0; transition:opacity .3s; }
   .save-indicator.show{opacity:1;}
 
+  /* ---------- Analytics tab ---------- */
+  .analytics-view[hidden]{ display:none; }
+  .an-hero{ background:var(--paper-raised); border:1px solid var(--line); border-radius:16px; padding:16px 18px; margin-bottom:18px; }
+  .an-hero .lbl{ font-size:11px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px; }
+  .an-hero .big{ font-family:'Fraunces',serif; font-size:38px; font-weight:700; color:var(--accent-deep); line-height:1; }
+  .an-hero .sub{ font-size:12.5px; color:var(--ink-soft); margin-top:4px; }
+  .an-year-label{ font-family:'Fraunces',serif; font-size:14px; font-weight:600; color:var(--ink-soft); margin:0 0 8px; }
+  .an-heatgrid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:22px; }
+  .an-tile{ border-radius:12px; padding:12px 8px; text-align:center; cursor:pointer; transition:transform .12s ease; }
+  .an-tile:hover{ transform:translateY(-1px); }
+  .an-tile .mo{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; opacity:0.85; }
+  .an-tile .pc{ font-family:'Fraunces',serif; font-size:17px; font-weight:600; margin-top:3px; }
+  .an-tile.ok{ background:var(--sage-deep); color:#fff; }
+  .an-tile.mid{ background:#e8b39f; color:#5a2f22; }
+  .an-tile.low{ background:var(--rose); color:#fff; }
+  .an-tile.empty{ background:var(--line); color:var(--ink-soft); opacity:0.5; cursor:default; }
+  .an-tile.current{ outline:2.5px solid var(--ink); outline-offset:2px; }
+  .an-icards{ display:flex; flex-direction:column; gap:10px; }
+  .an-card{ display:flex; align-items:center; gap:12px; background:var(--paper-raised); border:1px solid var(--line); border-radius:14px; padding:12px 14px; }
+  .an-card .an-ico{ width:38px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+  .an-card .t1{ font-size:10.5px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.04em; }
+  .an-card .t2{ font-family:'Fraunces',serif; font-size:16px; font-weight:600; margin-top:1px; }
+  .an-card .t3{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; }
+  .an-empty{ text-align:center; padding:60px 20px; color:var(--ink-soft); }
+  .an-empty-ico{ font-size:40px; margin-bottom:14px; }
+  .an-empty-title{ font-family:'Fraunces',serif; font-size:19px; font-weight:600; color:var(--ink); margin-bottom:8px; }
+  .an-empty-sub{ font-size:13px; line-height:1.55; max-width:36ch; margin:0 auto; }
+  @media (max-width:640px){ .an-heatgrid{ grid-template-columns:repeat(3,1fr); } }
+
   /* ---------- Mobile bottom bar / FAB / week toggle / agenda ---------- */
   .bottom-bar{ display:none; }
   .fab{ display:none; }
@@ -232,10 +267,6 @@
     .bb-tab{ display:flex; flex-direction:column; align-items:center; gap:2px; border:none; background:none; font-size:10px; font-weight:700; color:var(--ink-soft); padding:4px 10px; cursor:pointer; font-family:'Plus Jakarta Sans',sans-serif; }
     .bb-tab .bb-ic{ font-size:16px; line-height:1; }
     .bb-tab.active{ color:var(--accent-deep); }
-    .bb-tab.on #bbSyncDot, .bb-tab #bbSyncDot.on{ color:var(--sage); }
-    #bbSyncDot{ color:var(--line-strong); }
-    #bbSyncDot.on{ color:var(--sage); }
-    #bbSyncDot.err{ color:var(--rose); }
 
     .fab{ display:flex; align-items:center; justify-content:center; position:fixed; right:16px; bottom:calc(78px + env(safe-area-inset-bottom, 0px)); width:52px; height:52px; border-radius:50%; background:var(--accent); color:#fff; border:none; font-size:26px; font-weight:600; line-height:1; cursor:pointer; box-shadow:0 8px 20px rgba(216,110,80,0.45); z-index:151; }
     .fab-sheet{ position:fixed; right:16px; left:16px; bottom:calc(138px + env(safe-area-inset-bottom, 0px)); background:var(--paper-raised); border:1px solid var(--line-strong); border-radius:16px; padding:12px 14px; box-shadow:0 10px 26px rgba(59,42,74,0.22); z-index:151; }
@@ -319,39 +350,49 @@
     </div>
   </div>
 
-  <div id="stickyStripSentinel"></div>
-  <div class="sticky-strip" id="stickyStrip">
-    <div class="sticky-row1">
-      <div class="view-toggle" id="viewToggle">
-        <button type="button" class="vt-btn" data-mode="week">Week</button>
-        <button type="button" class="vt-btn" data-mode="month">Month</button>
+  <div id="calendarView">
+    <div id="stickyStripSentinel"></div>
+    <div class="sticky-strip" id="stickyStrip">
+      <div class="sticky-row1">
+        <div class="view-toggle" id="viewToggle">
+          <button type="button" class="vt-btn" data-mode="week">Week</button>
+          <button type="button" class="vt-btn" data-mode="month">Month</button>
+        </div>
+        <div id="stickyPercentWrap"></div>
       </div>
-      <div id="stickyPercentWrap"></div>
+      <div class="sticky-row2">
+        <button class="nav-btn" id="prevStickyNav">&larr;</button>
+        <div class="month-label" id="monthLabelSticky"></div>
+        <button class="nav-btn" id="nextStickyNav">&rarr;</button>
+      </div>
     </div>
-    <div class="sticky-row2">
-      <button class="nav-btn" id="prevStickyNav">&larr;</button>
-      <div class="month-label" id="monthLabelSticky"></div>
-      <button class="nav-btn" id="nextStickyNav">&rarr;</button>
+
+    <div class="countdown" id="countdown"></div>
+
+    <div class="stats-row" id="statsRow"></div>
+    <div class="stats-note">Mon–Fri default to <strong>Work from home</strong> — mark the days you actually went to office. National holidays default to excluded from working days, but marking one Office or WFH counts it as worked instead. Leave always reduces the working-days total. Target: 60% of working days in office.</div>
+
+    <div class="tagbar" id="tagbar"><span class="tagbar-label">Filter by city:</span></div>
+
+    <div class="holiday-note">
+      <span class="swatch"><span class="bar" style="background:#c65b57"></span>UP gazetted holiday</span>
+      <span class="swatch"><span class="bar" style="background:#e3cabd; border:1px dashed #c65b57;"></span>UP restricted holiday</span>
+      <span class="swatch"><span class="bar" style="background:#9a7fc4"></span>Your custom leave/holiday</span>
     </div>
+
+    <div class="weekend-toggle-row" id="weekendToggleRow">
+      <label class="weekend-toggle">
+        <input type="checkbox" id="hideWeekendsCheckbox">
+        <span>Hide Sat/Sun</span>
+      </label>
+    </div>
+    <div class="weekdays" id="weekdays">
+      <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div class="wd-weekend">Sat</div><div class="wd-weekend">Sun</div>
+    </div>
+    <div class="grid" id="grid"></div>
   </div>
 
-  <div class="countdown" id="countdown"></div>
-
-  <div class="stats-row" id="statsRow"></div>
-  <div class="stats-note">Mon–Fri default to <strong>Work from home</strong> — mark the days you actually went to office. National holidays default to excluded from working days, but marking one Office or WFH counts it as worked instead. Leave always reduces the working-days total. Target: 60% of working days in office.</div>
-
-  <div class="tagbar" id="tagbar"><span class="tagbar-label">Filter by city:</span></div>
-
-  <div class="holiday-note">
-    <span class="swatch"><span class="bar" style="background:#c65b57"></span>UP gazetted holiday</span>
-    <span class="swatch"><span class="bar" style="background:#e3cabd; border:1px dashed #c65b57;"></span>UP restricted holiday</span>
-    <span class="swatch"><span class="bar" style="background:#9a7fc4"></span>Your custom leave/holiday</span>
-  </div>
-
-  <div class="weekdays" id="weekdays">
-    <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div>
-  </div>
-  <div class="grid" id="grid"></div>
+  <div class="analytics-view" id="analyticsView" hidden></div>
 </div>
 
 <button type="button" class="fab" id="fabBtn" aria-label="Log today">+</button>
@@ -359,7 +400,7 @@
 
 <nav class="bottom-bar" id="bottomBar">
   <button type="button" class="bb-tab active" id="bbCalendar"><span class="bb-ic">&#128197;</span>Calendar</button>
-  <button type="button" class="bb-tab" id="bbSync"><span class="bb-ic" id="bbSyncDot">&#9679;</span>Sync</button>
+  <button type="button" class="bb-tab" id="bbAnalytics"><span class="bb-ic">&#128202;</span>Analytics</button>
   <button type="button" class="bb-tab" id="bbAlerts"><span class="bb-ic">&#128276;</span>Alerts</button>
   <button type="button" class="bb-tab" id="bbMore"><span class="bb-ic">&#8942;</span>More</button>
 </nav>
@@ -404,6 +445,10 @@
     <h2>Quick actions</h2>
     <div class="sub">Choose which day types show as one-click buttons — hover over a calendar day on desktop, or long-press it on phone. Tap a shortcut to set it, tap again to clear it.</div>
     <div class="settings-list" id="quickSettingsList"></div>
+    <div class="modal-actions">
+      <div class="sub" style="margin:0;" id="settingsSyncHint">Cloud sync: off</div>
+      <button class="btn-primary" id="settingsSyncBtn" type="button">Cloud sync</button>
+    </div>
     <div class="modal-actions" id="settingsInstallRow" hidden>
       <div class="sub" style="margin:0;" id="settingsInstallHint">Install this app on your phone for full-screen, one-tap access.</div>
       <button class="btn-primary" id="settingsInstallBtn" type="button">⬇ Install app</button>
@@ -487,6 +532,8 @@ let quickActions = loadQuickActions();
 let today = new Date();
 let viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
 let calMode = window.matchMedia('(max-width:640px)').matches ? 'week' : 'month';
+let activeTab = 'calendar';
+let hideWeekends = localStorage.getItem('hideWeekends')==='1';
 let weekAnchor = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 let tags = [];
 let monthCache = {};
@@ -592,11 +639,10 @@ async function pullFromCloud(showFlash){
 }
 function updateSyncPill(ok, errored){
   const btn = document.getElementById('syncBtn');
-  const dot = document.getElementById('bbSyncDot');
-  dot.classList.remove('on','err');
-  if(!isCloudConfigured()){ btn.textContent = 'Cloud sync: off'; btn.className = 'pill-btn'; return; }
-  if(errored){ btn.textContent = 'Cloud sync: error'; btn.className='pill-btn'; dot.classList.add('err'); return; }
-  btn.textContent = 'Cloud sync: on'; btn.className = 'pill-btn synced'; dot.classList.add('on');
+  const hint = document.getElementById('settingsSyncHint');
+  if(!isCloudConfigured()){ btn.textContent = 'Cloud sync: off'; btn.className = 'pill-btn'; hint.textContent = 'Cloud sync: off'; return; }
+  if(errored){ btn.textContent = 'Cloud sync: error'; btn.className='pill-btn'; hint.textContent = 'Cloud sync: error'; return; }
+  btn.textContent = 'Cloud sync: on'; btn.className = 'pill-btn synced'; hint.textContent = 'Cloud sync: on';
 }
 document.getElementById('syncBtn').addEventListener('click', ()=>{
   const c = cloudConfig();
@@ -800,10 +846,129 @@ function renderStats(data, y, m){
   document.getElementById('stickyPercentWrap').innerHTML = percentCardHtml;
 }
 
+/* ---------- Analytics tab ---------- */
+const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+async function collectLoggedMonths(){
+  const keys = [];
+  for(let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    if(k && /^month:\d{4}-\d{2}$/.test(k)) keys.push(k.slice(6));
+  }
+  keys.sort();
+  const out = [];
+  for(const key of keys){
+    const [y, m] = key.split('-').map(Number);
+    const data = await loadMonth(key);
+    const s = computeMonthStats(data, y, m-1);
+    out.push({ key, y, m: m-1, ...s });
+  }
+  return out;
+}
+
+function pctBand(pct){
+  if(pct>=60) return 'ok';
+  if(pct>=45) return 'mid';
+  return 'low';
+}
+
+async function renderAnalytics(){
+  const el = document.getElementById('analyticsView');
+  const months = await collectLoggedMonths();
+
+  if(months.length===0){
+    el.innerHTML = `
+      <div class="an-empty">
+        <div class="an-empty-ico">📊</div>
+        <div class="an-empty-title">No logged months yet</div>
+        <div class="an-empty-sub">Mark a few days as Office, WFH or Travel — your overall and monthly trends will show up here.</div>
+      </div>`;
+    return;
+  }
+
+  const totalOffice = months.reduce((a,mo)=>a+mo.officeDays, 0);
+  const totalWorking = months.reduce((a,mo)=>a+mo.workingDays, 0);
+  const overallPct = totalWorking>0 ? Math.round((totalOffice/totalWorking)*100) : 0;
+  const first = months[0], latest = months[months.length-1];
+  const sinceLabel = `${MONTH_NAMES[first.m]} ${first.y}`;
+
+  // Group months by year for the heatmap
+  const byYear = {};
+  months.forEach(mo=>{ (byYear[mo.y] = byYear[mo.y] || {})[mo.m] = mo; });
+  const years = Object.keys(byYear).sort();
+
+  const heatmapHtml = years.map(y=>{
+    const tiles = MONTH_SHORT.map((label, mi)=>{
+      const mo = byYear[y][mi];
+      if(!mo){
+        return `<div class="an-tile empty"><div class="mo">${label}</div><div class="pc">—</div></div>`;
+      }
+      const band = pctBand(mo.officePercent);
+      const isLatest = mo.key===latest.key;
+      return `<div class="an-tile ${band}${isLatest?' current':''}" data-key="${mo.key}"><div class="mo">${label}</div><div class="pc">${mo.officePercent}%${isLatest?'*':''}</div></div>`;
+    }).join('');
+    return `<div class="an-year-label">${y}</div><div class="an-heatgrid">${tiles}</div>`;
+  }).join('');
+
+  // Insight cards
+  let cards = '';
+  if(months.length>=2){
+    const delta = latest.officePercent - first.officePercent;
+    const dir = delta>0 ? 'up' : (delta<0 ? 'down' : 'flat');
+    const dirIcon = dir==='up' ? '📈' : (dir==='down' ? '📉' : '➡️');
+    const dirBg = dir==='up' ? 'var(--sage-soft)' : (dir==='down' ? 'var(--rose-soft)' : 'var(--sky-soft)');
+    const latestInProgress = latest.y===today.getFullYear() && latest.m===today.getMonth();
+    cards += `<div class="an-card"><div class="an-ico" style="background:${dirBg}">${dirIcon}</div><div class="an-txt"><div class="t1">Trending ${dir}</div><div class="t2">${delta>0?'+':''}${delta}pts since ${MONTH_NAMES[first.m]}</div><div class="t3">${first.officePercent}% → ${latest.officePercent}%${latestInProgress ? ' (in progress)' : ''}</div></div></div>`;
+  } else {
+    cards += `<div class="an-card"><div class="an-ico" style="background:var(--sky-soft)">📊</div><div class="an-txt"><div class="t1">Just getting started</div><div class="t2">1 month logged</div><div class="t3">Trends appear once you have 2+ months</div></div></div>`;
+  }
+
+  const best = months.reduce((a,b)=> b.officePercent>a.officePercent ? b : a, months[0]);
+  cards += `<div class="an-card"><div class="an-ico" style="background:var(--lavender-soft)">🏆</div><div class="an-txt"><div class="t1">Best month</div><div class="t2">${MONTH_NAMES[best.m]} ${best.y} · ${best.officePercent}%</div><div class="t3">${best.officeDays} of ${best.workingDays} working days in-office</div></div></div>`;
+
+  let streak = 0;
+  for(let i=months.length-1;i>=0;i--){
+    if(months[i].officePercent>=60) streak++; else break;
+  }
+  const streakTxt = streak===0 ? 'Not at target this month' : `${streak} month${streak===1?'':'s'} at target`;
+  cards += `<div class="an-card"><div class="an-ico" style="background:var(--accent-soft)">⏱</div><div class="an-txt"><div class="t1">Current streak</div><div class="t2">${streakTxt}</div><div class="t3">Target is 60% in-office</div></div></div>`;
+
+  el.innerHTML = `
+    <div class="an-hero">
+      <div class="lbl">Since ${sinceLabel} · ${months.length} month${months.length===1?'':'s'} logged</div>
+      <div class="big">${overallPct}%</div>
+      <div class="sub">${totalOffice} of ${totalWorking} working days in-office overall</div>
+    </div>
+    ${heatmapHtml}
+    <div class="an-icards">${cards}</div>
+  `;
+  el.querySelectorAll('.an-tile[data-key]').forEach(tile=>{
+    tile.addEventListener('click', ()=>{
+      const [y, m] = tile.dataset.key.split('-').map(Number);
+      viewDate = new Date(y, m-1, 1);
+      calMode = 'month';
+      document.querySelectorAll('.vt-btn').forEach(b=>b.classList.toggle('active', b.dataset.mode==='month'));
+      setActiveTab('calendar');
+      renderCalendar(); renderCountdown();
+    });
+  });
+}
+
+function setActiveTab(tab){
+  activeTab = tab;
+  document.getElementById('calendarView').hidden = tab!=='calendar';
+  document.getElementById('analyticsView').hidden = tab!=='analytics';
+  document.getElementById('bbCalendar').classList.toggle('active', tab==='calendar');
+  document.getElementById('bbAnalytics').classList.toggle('active', tab==='analytics');
+  if(tab==='analytics') renderAnalytics();
+}
+
 /* ---------- Calendar rendering ---------- */
 async function renderCalendar(){
   document.getElementById('weekdays').classList.toggle('agenda-hide', calMode==='week');
   document.getElementById('grid').classList.toggle('agenda-mode', calMode==='week');
+  document.getElementById('weekdays').classList.toggle('hide-weekends', hideWeekends);
+  document.getElementById('grid').classList.toggle('hide-weekends', hideWeekends);
   if(calMode==='week') return renderWeekAgenda();
 
   setMonthLabel(`${MONTH_NAMES[viewDate.getMonth()]} ${viewDate.getFullYear()}`);
@@ -814,7 +979,13 @@ async function renderCalendar(){
   const grid = document.getElementById('grid');
   grid.innerHTML = '';
   const firstOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
-  let startOffset = (firstOfMonth.getDay() + 6) % 7;
+  const firstDow = firstOfMonth.getDay();
+  let startOffset;
+  if(hideWeekends){
+    startOffset = (firstDow>=1 && firstDow<=5) ? firstDow-1 : 0;
+  } else {
+    startOffset = (firstDow + 6) % 7;
+  }
   const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth()+1, 0).getDate();
 
   for(let i=0;i<startOffset;i++){
@@ -822,12 +993,13 @@ async function renderCalendar(){
   }
 
   for(let day=1; day<=daysInMonth; day++){
+    const cellDow = new Date(viewDate.getFullYear(), viewDate.getMonth(), day).getDay();
+    if(hideWeekends && (cellDow===0 || cellDow===6)) continue;
     const cell = document.createElement('div');
     cell.className = 'cell';
     const dayData = data.days[day];
     const isToday = viewDate.getFullYear()===today.getFullYear() && viewDate.getMonth()===today.getMonth() && day===today.getDate();
     if(isToday) cell.classList.add('is-today');
-    const cellDow = new Date(viewDate.getFullYear(), viewDate.getMonth(), day).getDay();
     if((cellDow===0 || cellDow===6) && !isToday) cell.classList.add('is-weekend');
 
     const holiday = officialHolidayFor(viewDate.getFullYear(), viewDate.getMonth(), day);
@@ -924,7 +1096,11 @@ async function renderWeekAgenda(){
   const grid = document.getElementById('grid');
   grid.innerHTML = '';
 
-  dates.forEach((d, idx)=>{
+  const rowsToRender = dates
+    .map((d, idx)=>({d, idx}))
+    .filter(({d})=> !hideWeekends || (d.getDay()!==0 && d.getDay()!==6));
+
+  rowsToRender.forEach(({d, idx})=>{
     const y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
     const data = dataByKey[monthKey(d)];
     const dayData = data.days[day];
@@ -1275,6 +1451,14 @@ document.querySelectorAll('.vt-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>setCalMode(btn.dataset.mode));
 });
 
+const hideWeekendsCheckbox = document.getElementById('hideWeekendsCheckbox');
+hideWeekendsCheckbox.checked = hideWeekends;
+hideWeekendsCheckbox.addEventListener('change', ()=>{
+  hideWeekends = hideWeekendsCheckbox.checked;
+  localStorage.setItem('hideWeekends', hideWeekends ? '1' : '0');
+  renderCalendar();
+});
+
 if('IntersectionObserver' in window){
   const stickyStrip = document.getElementById('stickyStrip');
   const sentinel = document.getElementById('stickyStripSentinel');
@@ -1310,10 +1494,11 @@ document.getElementById('prevStickyNav').addEventListener('click', stepBack);
 document.getElementById('nextStickyNav').addEventListener('click', stepForward);
 
 /* ---------- Mobile bottom bar ---------- */
-document.getElementById('bbSync').addEventListener('click', ()=>document.getElementById('syncBtn').click());
+document.getElementById('settingsSyncBtn').addEventListener('click', ()=>document.getElementById('syncBtn').click());
 document.getElementById('bbAlerts').addEventListener('click', ()=>document.getElementById('notifBtn').click());
 document.getElementById('bbMore').addEventListener('click', ()=>document.getElementById('settingsBtn').click());
-document.getElementById('bbCalendar').addEventListener('click', ()=>window.scrollTo({top:0, behavior:'smooth'}));
+document.getElementById('bbCalendar').addEventListener('click', ()=>{ setActiveTab('calendar'); window.scrollTo({top:0, behavior:'smooth'}); });
+document.getElementById('bbAnalytics').addEventListener('click', ()=>setActiveTab('analytics'));
 
 /* ---------- Quick-log FAB (logs today's day type in one tap) ---------- */
 const fabBtn = document.getElementById('fabBtn');
