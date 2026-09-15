@@ -593,13 +593,28 @@ async function saveMonth(key){ await safeSet(`month:${key}`, JSON.stringify(mont
 function tagById(id){ return tags.find(t=>t.id===id); }
 
 /* ---------- Cloud sync ---------- */
+// Public by design: Supabase's anon key is meant to be shipped in client apps —
+// access is governed by the project's row-level security policies, not by
+// keeping this key secret. Baking it in means setup only needs the sync code.
+const DEFAULT_SUPABASE_URL = 'https://awitxweymbhdsdkbtiuu.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3aXR4d2V5bWJoZHNka2J0aXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk0Njg4MjUsImV4cCI6MjEwNTA0NDgyNX0.O7RxfBycvhom6FS-vp0jGD4sGdKaWs9bcfyDeB3s3OE';
+
 function getSyncId(){
   let id = localStorage.getItem('_sync_id');
   if(!id){ id = 'plan-' + Math.random().toString(36).slice(2,10); localStorage.setItem('_sync_id', id); }
   return id;
 }
-function cloudConfig(){ return { url: localStorage.getItem('_sb_url'), key: localStorage.getItem('_sb_key') }; }
-function isCloudConfigured(){ const c = cloudConfig(); return !!(c.url && c.key); }
+function cloudConfig(){
+  return {
+    url: localStorage.getItem('_sb_url') || DEFAULT_SUPABASE_URL,
+    key: localStorage.getItem('_sb_key') || DEFAULT_SUPABASE_ANON_KEY
+  };
+}
+function isCloudConfigured(){ return localStorage.getItem('_sync_enabled')==='1'; }
+async function copyToClipboard(text){
+  try{ await navigator.clipboard.writeText(text); return true; }
+  catch(e){ return false; }
+}
 function collectLocalData(){
   const out = {};
   for(let i=0;i<localStorage.length;i++){
@@ -644,23 +659,35 @@ function updateSyncPill(ok, errored){
   if(errored){ btn.textContent = 'Cloud sync: error'; btn.className='pill-btn'; hint.textContent = 'Cloud sync: error'; return; }
   btn.textContent = 'Cloud sync: on'; btn.className = 'pill-btn synced'; hint.textContent = 'Cloud sync: on';
 }
-document.getElementById('syncBtn').addEventListener('click', ()=>{
-  const c = cloudConfig();
+document.getElementById('syncBtn').addEventListener('click', async ()=>{
   if(isCloudConfigured()){
-    if(!confirm('Cloud sync is already on.\n\nSync code: ' + getSyncId() + '\n\nChange the Supabase URL/key or sync code?')) return;
+    const code = getSyncId();
+    const wantsCopy = confirm('Cloud sync is on.\n\nYour code: ' + code + '\n\nTap OK to copy this code (paste it into Cloud sync on your other device to link them).\nTap Cancel for the option to turn sync off.');
+    if(wantsCopy){
+      const copied = await copyToClipboard(code);
+      if(copied) flashSaved('Code copied');
+      else prompt('Copy this code:', code);
+    } else if(confirm('Turn off Cloud sync on this device? (Your data stays in the cloud — turning it back on with the same code brings it right back.)')){
+      localStorage.setItem('_sync_enabled', '0');
+      updateSyncPill(true);
+    }
+    return;
   }
-  const url = prompt('Supabase Project URL (from your free project settings):', c.url || 'https://xxxx.supabase.co');
-  if(url===null) return;
-  const key = prompt('Supabase anon public API key:', c.key || '');
-  if(key===null) return;
-  const code = prompt('Sync code — use the SAME code on every device you want linked:', getSyncId());
-  if(code===null) return;
-  if(url.trim()) localStorage.setItem('_sb_url', url.trim());
-  if(key.trim()) localStorage.setItem('_sb_key', key.trim());
-  if(code.trim()) localStorage.setItem('_sync_id', code.trim());
+
+  const myCode = getSyncId();
+  const entered = prompt('Cloud sync\n\nLinking a device you already synced? Paste that device\'s code below.\nSetting this device up for the first time? Just tap OK.', myCode);
+  if(entered===null) return;
+  if(entered.trim()) localStorage.setItem('_sync_id', entered.trim());
+  localStorage.setItem('_sync_enabled', '1');
   monthCache = {};
   updateSyncPill(true);
-  pullFromCloud(true).then(()=>pushToCloud());
+  await pullFromCloud(true);
+  await pushToCloud();
+
+  const finalCode = getSyncId();
+  const copied = await copyToClipboard(finalCode);
+  if(copied) alert('Cloud sync is on. Your code (copied to clipboard):\n\n' + finalCode + '\n\nPaste it into Cloud sync on your other device to link it to this data.');
+  else prompt('Cloud sync is on. Copy this code to use on your other device:', finalCode);
 });
 
 /* ---------- Push notifications ---------- */
