@@ -61,7 +61,7 @@
   .countdown .dot-lg{ width:12px;height:12px; border-radius:50%; display:inline-block; margin-right:6px; }
   .countdown.empty{ color:var(--ink-soft); font-size:13px; justify-content:center; background:var(--paper-raised); }
 
-  .stats-row{ display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin-bottom:8px; }
+  .stats-row{ display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:8px; }
   .stat-card{ background:var(--paper-raised); border:1px solid var(--line); border-radius:12px; padding:12px 12px; }
   .stat-card .stat-num{ font-family:'Fraunces',serif; font-size:22px; font-weight:700; line-height:1; }
   .stat-card .stat-label{ font-size:10.5px; font-weight:600; color:var(--ink-soft); margin-top:4px; }
@@ -69,7 +69,6 @@
   .stat-card.office .stat-num{color:var(--accent-deep);}
   .stat-card.wfh .stat-num{color:var(--sky-deep);}
   .stat-card.travel .stat-num{color:var(--lavender-deep);}
-  .stat-card.home .stat-num{color:var(--sage-deep);}
   .stat-card.percent{border-width:1.5px; grid-column:span 1;}
   .stat-card.percent.ok{border-color:var(--sage);}
   .stat-card.percent.low{border-color:var(--rose);}
@@ -113,6 +112,9 @@
   .weekend-toggle-row{ display:flex; justify-content:flex-end; margin-bottom:6px; }
   .weekend-toggle{ display:flex; align-items:center; gap:5px; font-size:10.5px; font-weight:600; color:var(--ink-soft); cursor:pointer; user-select:none; }
   .weekend-toggle input{ width:13px; height:13px; margin:0; cursor:pointer; accent-color:var(--accent-deep); }
+  .travel-toggle{ display:flex; align-items:flex-start; gap:8px; font-size:12.5px; color:var(--ink); cursor:pointer; user-select:none; background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:9px 11px; }
+  .travel-toggle input{ width:16px; height:16px; margin:2px 0 0; cursor:pointer; accent-color:var(--lavender-deep); flex-shrink:0; }
+  .travel-toggle span{ line-height:1.4; }
   .weekdays{ display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:4px; }
   .weekdays.hide-weekends{ grid-template-columns:repeat(5,1fr); }
   .weekdays.hide-weekends .wd-weekend{ display:none; }
@@ -126,8 +128,13 @@
     .cell:hover:not(.empty){box-shadow:0 4px 14px rgba(59,42,74,0.08); border-color:var(--accent); transform:translateY(-1px);}
   }
   .cell .num{ font-family:'Fraunces',serif; font-size:16px; font-weight:500; color:var(--ink); }
-  .cell.is-office{background:#eef7ec;}
-  .cell.is-today{background:var(--lavender-soft);}
+  .cell.is-office{ background:#bfe3b4; }
+  @media (hover:hover) and (pointer:fine){
+    .cell.is-office:hover{ background:#96cf85; }
+  }
+  /* Today is marked with a border, never a background fill — so it never
+     hides what day type (e.g. Office's green) is actually sitting under it. */
+  .cell.is-today{ border:2px solid var(--lavender-deep); }
   .cell.is-today .num{ color:var(--accent-deep); font-weight:700; }
   .cell.is-holiday{border-top:3px solid var(--rose);}
   .cell.is-restricted{border-top:3px dashed var(--line-strong);}
@@ -141,10 +148,11 @@
   .daytype-badge{ position:absolute; top:6px; right:6px; font-size:9px; font-weight:800; width:17px; height:17px; border-radius:5px; display:flex; align-items:center; justify-content:center; color:#fff; }
   .daytype-badge.office{background:var(--accent);}
   .daytype-badge.wfh{background:var(--sky-deep);}
-  .daytype-badge.travel{background:var(--lavender-deep);}
-  .daytype-badge.home{background:var(--sage-deep);}
+  /* Travel is independent of day type now, so it gets its own badge in the
+     opposite corner — a day can show both an O/H letter AND this together. */
+  .travel-badge{ position:absolute; top:6px; left:6px; font-size:9px; width:17px; height:17px; border-radius:5px; display:flex; align-items:center; justify-content:center; color:#fff; background:var(--lavender-deep); }
 
-  .cell .quick-actions{ position:absolute; inset:0; display:flex; flex-wrap:wrap; align-content:flex-end; justify-content:center; gap:3px; padding:5px; opacity:0; pointer-events:none; transition:opacity .12s ease; background:rgba(255,253,251,0.94); border-radius:10px; z-index:2; }
+  .cell .quick-actions{ position:absolute; inset:0; display:flex; flex-wrap:wrap; align-content:flex-end; justify-content:center; gap:3px; padding:5px; opacity:0; pointer-events:none; transition:opacity .12s ease; background:rgba(255,253,251,0.45); border-radius:10px; z-index:2; }
   @media (hover:hover) and (pointer:fine){
     .cell:hover:not(.empty) .quick-actions{opacity:1; pointer-events:auto;}
   }
@@ -230,6 +238,12 @@
 
   .restore-options{ display:flex; flex-direction:column; gap:9px; margin-top:16px; }
   .restore-options button{ width:100%; }
+
+  .alert-cat{ display:flex; gap:11px; align-items:flex-start; padding:10px 0; border-bottom:1px solid var(--line); }
+  .alert-cat:last-of-type{ border-bottom:none; }
+  .alert-cat .ac-ico{ width:34px; height:34px; border-radius:10px; background:var(--paper); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+  .alert-cat .ac-title{ font-weight:700; font-size:13px; color:var(--ink); }
+  .alert-cat .ac-sub{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; line-height:1.45; }
 
   .save-indicator{ font-size:11px; font-weight:600; color:var(--sage); position:fixed; bottom:18px; right:18px; background:var(--paper-raised); border:1px solid var(--line); padding:7px 14px; border-radius:20px; opacity:0; transition:opacity .3s; }
   .save-indicator.show{opacity:1;}
@@ -318,8 +332,6 @@
   .agenda-status{ font-size:12.5px; font-weight:600; display:block; }
   .agenda-status.office{color:var(--accent-deep);}
   .agenda-status.wfh{color:var(--sky-deep);}
-  .agenda-status.travel{color:var(--lavender-deep);}
-  .agenda-status.home{color:var(--sage-deep);}
   .agenda-status.leave, .agenda-status.holiday{color:var(--rose);}
   .agenda-status.off{color:var(--ink-soft); font-weight:500;}
   .agenda-tag{ font-size:10.5px; font-weight:600; }
@@ -370,6 +382,7 @@
     .cell .city-name{font-size:8px; bottom:3px; left:4px;}
     .cell .progress{font-size:8.5px; bottom:3px; right:4px;}
     .daytype-badge{width:14px; height:14px; font-size:8px; top:3px; right:3px;}
+    .travel-badge{width:14px; height:14px; font-size:8px; top:3px; left:3px;}
     .month-nav{width:100%;}
     .countdown{flex-wrap:wrap;}
     .stats-row{grid-template-columns:repeat(3,1fr); gap:6px;}
@@ -490,6 +503,12 @@
     <div class="daytype-hint" id="daytypeHint"></div>
     <input type="text" id="leaveNameInput" class="leave-name-input" placeholder="Name this leave/holiday (e.g. Sick leave, Diwali break)" style="display:none;" />
 
+    <span class="field-label">Travel</span>
+    <label class="travel-toggle">
+      <input type="checkbox" id="travelToggle">
+      <span>✈ Traveling this day — combines with whatever day type you picked above (e.g. worked from office, then traveled that night)</span>
+    </label>
+
     <span class="field-label">City / trip tag</span>
     <div class="tag-select" id="tagSelect"></div>
 
@@ -520,10 +539,6 @@
     <div class="modal-actions" id="resyncRow" hidden>
       <div class="sub" style="margin:0;">Devices out of sync? Pull the cloud's latest, then push this device's data back up.</div>
       <button class="btn-outline" id="resyncBtn" type="button">🔄 Resync now</button>
-    </div>
-    <div class="modal-actions">
-      <div class="sub" style="margin:0;">See if notifications actually show up on this device.</div>
-      <button class="btn-primary" id="testNotifBtn" type="button">🔔 Send test notification</button>
     </div>
     <div class="modal-actions" id="settingsInstallRow" hidden>
       <div class="sub" style="margin:0;" id="settingsInstallHint">Install this app on your phone for full-screen, one-tap access.</div>
@@ -608,6 +623,60 @@
   </div>
 </div>
 
+<div class="overlay" id="alertsOverlay">
+  <div class="modal">
+    <button class="modal-close" id="alertsCloseBtn">&times;</button>
+    <h2>Alerts</h2>
+
+    <div id="alertsSetup">
+      <div class="sub">Turn on notifications to get reminders for logging days, upcoming trips, and shared to-dos — then send yourself a test to confirm they actually show up on this device.</div>
+      <div class="backup-row">
+        <button class="btn-primary" id="alertsSubscribeBtn" type="button">🔔 Enable notifications</button>
+        <button class="btn-outline" id="alertsTestBtn" type="button">Send test</button>
+      </div>
+      <div class="sub" id="alertsSetupHint" style="margin-top:10px;"></div>
+    </div>
+
+    <div id="alertsCategories" hidden>
+      <div class="sub" style="margin-bottom:10px;">You're set up. Here's everything this device can be notified about.</div>
+
+      <div class="alert-cat">
+        <div class="ac-ico">📝</div>
+        <div class="ac-txt"><div class="ac-title">Daily log reminder</div><div class="ac-sub">Nightly — only if today isn't logged yet. Comes with one-tap Office/WFH/Home buttons right on the notification.</div></div>
+      </div>
+      <div class="alert-cat">
+        <div class="ac-ico">🔥</div>
+        <div class="ac-txt"><div class="ac-title">Streak nudge</div><div class="ac-sub">Same daily reminder, reworded once you're 2+ workdays logged in a row, so it protects your streak instead of just asking.</div></div>
+      </div>
+      <div class="alert-cat">
+        <div class="ac-ico">📅</div>
+        <div class="ac-txt"><div class="ac-title">Sunday weekly catch-up</div><div class="ac-sub">Sunday evenings — only if a weekday from that week is still unlogged. Lists exactly which days.</div></div>
+      </div>
+      <div class="alert-cat">
+        <div class="ac-ico">✈️</div>
+        <div class="ac-txt"><div class="ac-title">Tagged-date countdown</div><div class="ac-sub">A daily countdown to any date you've tagged (Travel, Home, or a custom city), starting 30 days out.</div></div>
+      </div>
+      <div class="alert-cat">
+        <div class="ac-ico">📊</div>
+        <div class="ac-txt"><div class="ac-title">Low in-office %</div><div class="ac-sub">Once a month, from day 20 onward — only if you're trending under the 60% target.</div></div>
+      </div>
+      <div class="alert-cat">
+        <div class="ac-ico">📝</div>
+        <div class="ac-txt"><div class="ac-title">Shared to-do reminders</div><div class="ac-sub">Daily — if a to-do list you own or joined still has open items.</div></div>
+      </div>
+      <div class="alert-cat">
+        <div class="ac-ico">🔔</div>
+        <div class="ac-txt"><div class="ac-title">"Remind me" nudges</div><div class="ac-sub">Sent instantly whenever someone you share a to-do list with taps "Remind them" on you.</div></div>
+      </div>
+
+      <div class="modal-actions">
+        <div class="sub" style="margin:0;">Turn off all push notifications on this device.</div>
+        <button class="btn-outline" id="alertsUnsubscribeBtn" type="button">Unsubscribe</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="save-indicator" id="saveIndicator">Saved</div>
 
 <button class="update-banner" id="updateBanner" type="button">
@@ -661,15 +730,19 @@ const HOLIDAYS_UP_2026 = {
   '2026-12-25':{name:'Christmas Day', type:'gazetted'}
 };
 
+// "Home / off" was removed as its own type — Travel is no longer one of
+// these either. Travel is now an independent flag (see selectedDayTravel /
+// dayData.travel) that combines with any of the three below, since a real
+// day is often more than one of these at once (worked from office, then
+// traveled that night; WFH and traveled; on leave and traveled, etc).
 const DAYTYPES = [
   {id:'office', label:'Office', color:'#e8927c', hint:'Counts toward your in-office %.'},
   {id:'wfh', label:'Work from home', color:'#5c86a8', hint:'Counts as a working day, not office.'},
-  {id:'travel', label:'Travel', color:'#9a7fc4', hint:'Marked as a travel day.'},
-  {id:'home', label:'Home / off', color:'#598066', hint:'A non-work day at home (not a formal leave).'},
   {id:'leave', label:'Leave', color:'#c65b57', hint:'Your own personal leave — separate from the official UP holiday calendar. Reduces your total working days for the month.'}
 ];
 function dayTypeById(id){ return DAYTYPES.find(d=>d.id===id); }
-const DAYTYPE_LETTER = {office:'O', wfh:'W', travel:'T', home:'H', leave:'L'};
+const DAYTYPE_LETTER = {office:'O', wfh:'H', leave:'L'};
+const TRAVEL_COLOR = '#9a7fc4';
 
 const DEFAULT_QUICK_ACTIONS = ['office','wfh','leave'];
 function loadQuickActions(){
@@ -693,6 +766,7 @@ let activeFilters = new Set();
 let selectedDay = null;
 let selectedDayTag = null;
 let selectedDayType = null;
+let selectedDayTravel = false;
 let workingChecklist = [];
 
 function monthKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
@@ -1392,18 +1466,46 @@ async function disablePushNotifications(){
   await updateNotifPill();
 }
 
-document.getElementById('notifBtn').addEventListener('click', async ()=>{
-  if(!pushSupported()) return;
-  const reg = await navigator.serviceWorker.ready.catch(()=>null);
-  const existing = reg ? await reg.pushManager.getSubscription() : null;
-  if(existing){
-    if(confirm('Turn off push notifications on this device?')) await disablePushNotifications();
-  } else {
-    await enablePushNotifications();
+/* ---------- Alerts view ---------- */
+function isNotifTestConfirmed(){ return localStorage.getItem('_notif_test_confirmed')==='1'; }
+
+async function renderAlertsView(){
+  const setupHint = document.getElementById('alertsSetupHint');
+  const setupSection = document.getElementById('alertsSetup');
+  const categoriesSection = document.getElementById('alertsCategories');
+
+  if(!pushSupported()){
+    setupSection.hidden = false; categoriesSection.hidden = true;
+    document.getElementById('alertsSubscribeBtn').disabled = true;
+    document.getElementById('alertsTestBtn').disabled = true;
+    setupHint.textContent = "This browser doesn't support push notifications.";
+    return;
   }
+  if(Notification.permission === 'denied'){
+    setupSection.hidden = false; categoriesSection.hidden = true;
+    setupHint.textContent = 'Notifications are blocked for this site — enable them in your browser/phone settings, then reopen this.';
+    return;
+  }
+
+  const reg = await navigator.serviceWorker.ready.catch(()=>null);
+  const sub = reg ? await reg.pushManager.getSubscription() : null;
+  const ready = !!sub && isNotifTestConfirmed();
+
+  setupSection.hidden = ready;
+  categoriesSection.hidden = !ready;
+  if(!ready){
+    setupHint.textContent = !sub
+      ? 'Step 1: Enable notifications. Step 2: send yourself a test to confirm.'
+      : "Almost there — tap \"Send test\" to confirm notifications actually show up, then you're set.";
+  }
+}
+
+document.getElementById('alertsSubscribeBtn').addEventListener('click', async ()=>{
+  await enablePushNotifications();
+  await renderAlertsView();
 });
 
-document.getElementById('testNotifBtn').addEventListener('click', async ()=>{
+document.getElementById('alertsTestBtn').addEventListener('click', async ()=>{
   if(!pushSupported()){ alert("This browser doesn't support notifications."); return; }
   let permission = Notification.permission;
   if(permission === 'default') permission = await Notification.requestPermission();
@@ -1412,7 +1514,7 @@ document.getElementById('testNotifBtn').addEventListener('click', async ()=>{
     return;
   }
   const reg = await navigator.serviceWorker.ready.catch(()=>null);
-  if(!reg){ alert('Service worker isn\'t ready yet — reload the app and try again.'); return; }
+  if(!reg){ alert("Service worker isn't ready yet — reload the app and try again."); return; }
   await reg.showNotification('Test notification', {
     body: 'If you can see this, notifications are working on this device.',
     icon: '/icons/icon-192.png',
@@ -1420,8 +1522,26 @@ document.getElementById('testNotifBtn').addEventListener('click', async ()=>{
     tag: 'test-notification',
     data: { url: '/' }
   });
+  localStorage.setItem('_notif_test_confirmed', '1');
   flashSaved('Test sent');
+  await renderAlertsView();
 });
+
+document.getElementById('alertsUnsubscribeBtn').addEventListener('click', async ()=>{
+  if(!confirm('Turn off all push notifications on this device?')) return;
+  await disablePushNotifications();
+  localStorage.removeItem('_notif_test_confirmed');
+  await renderAlertsView();
+});
+
+function openAlertsModal(){
+  document.getElementById('alertsOverlay').classList.add('show');
+  renderAlertsView();
+}
+document.getElementById('notifBtn').addEventListener('click', openAlertsModal);
+document.getElementById('bbAlerts').addEventListener('click', openAlertsModal);
+document.getElementById('alertsCloseBtn').addEventListener('click', ()=>document.getElementById('alertsOverlay').classList.remove('show'));
+document.getElementById('alertsOverlay').addEventListener('click', (e)=>{ if(e.target.id==='alertsOverlay') document.getElementById('alertsOverlay').classList.remove('show'); });
 
 /* ---------- Countdown ---------- */
 async function computeNextTrip(){
@@ -1433,11 +1553,15 @@ async function computeNextTrip(){
     const daysInMonth = new Date(searchDate.getFullYear(), searchDate.getMonth()+1, 0).getDate();
     for(let day=1; day<=daysInMonth; day++){
       const dayData = data.days[day];
-      if(dayData && dayData.tag){
+      // A trip candidate is any day with a city tag, OR any day flagged
+      // Travel (even with no tag) — so the countdown works whether you
+      // tagged a destination or just marked "traveling" on the calendar.
+      if(dayData && (dayData.tag || dayData.travel)){
         const dateObj = new Date(searchDate.getFullYear(), searchDate.getMonth(), day);
         if(dateObj >= todayZero){
-          const tag = tagById(dayData.tag);
+          const tag = dayData.tag ? tagById(dayData.tag) : null;
           if(tag) return {date: dateObj, tag, day};
+          if(dayData.travel) return {date: dateObj, tag: {name:'Travel', color: TRAVEL_COLOR}, day};
         }
       }
     }
@@ -1448,7 +1572,7 @@ async function computeNextTrip(){
 async function renderCountdown(){
   const el = document.getElementById('countdown');
   const trip = await computeNextTrip();
-  if(!trip){ el.className = 'countdown empty'; el.innerHTML = `Tag an upcoming date with a city to start your countdown &nbsp;✦`; return; }
+  if(!trip){ el.className = 'countdown empty'; el.innerHTML = `Mark an upcoming date as Travel (or tag it with a city) to start your countdown &nbsp;✦`; return; }
   const todayZero = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const diffDays = Math.round((trip.date - todayZero) / 86400000);
   const dateLabel = `${DAY_NAMES[trip.date.getDay()].slice(0,3)}, ${trip.date.getDate()} ${MONTH_NAMES[trip.date.getMonth()]}`;
@@ -1461,12 +1585,12 @@ async function renderCountdown(){
     </div>`;
 }
 
-/* ---------- Working-day / office / wfh / travel / home stats ---------- */
+/* ---------- Working-day / office / wfh / travel stats ---------- */
 function computeMonthStats(data, y, m){
   if(y===undefined){ y = viewDate.getFullYear(); m = viewDate.getMonth(); }
   const daysInMonth = new Date(y, m+1, 0).getDate();
   let weekdayCount=0, weekendCount=0, officialHolOnWeekday=0, leaveOnWeekday=0;
-  let officeDays=0, wfhDays=0, travelDays=0, homeDays=0, leaveDays=0, holidayCount=0;
+  let officeDays=0, wfhDays=0, travelDays=0, leaveDays=0, holidayCount=0;
   const holidayOverrides = {};
   for(let day=1; day<=daysInMonth; day++){
     const dow = new Date(y,m,day).getDay();
@@ -1477,10 +1601,10 @@ function computeMonthStats(data, y, m){
     const explicit = dd && dd.dayType;
     const effective = effectiveDayType(y,m,day,dd,holiday);
     const isGazetted = holiday && holiday.type==='gazetted';
-    // If the user explicitly worked (office/wfh/travel/home) on a national holiday,
-    // it no longer counts against the denominator — only an un-overridden or
+    // If the user explicitly worked (office/wfh) on a national holiday, it no
+    // longer counts against the denominator — only an un-overridden or
     // explicitly-leave holiday reduces working days.
-    const workedThroughHoliday = explicit==='office' || explicit==='wfh' || explicit==='travel' || explicit==='home';
+    const workedThroughHoliday = explicit==='office' || explicit==='wfh';
 
     if(!isWeekend){
       if(isGazetted && !workedThroughHoliday) officialHolOnWeekday++;
@@ -1488,8 +1612,10 @@ function computeMonthStats(data, y, m){
     }
     if(effective==='office') officeDays++;
     else if(effective==='wfh') wfhDays++;
-    else if(effective==='travel') travelDays++;
-    else if(effective==='home') homeDays++;
+    // Travel is independent of the day type now — a day can be Office AND
+    // Travel (worked from office, then traveled that night), WFH AND Travel,
+    // Leave AND Travel, or just Travel on its own.
+    if(dd && dd.travel) travelDays++;
     // Leave is whatever the user explicitly set to "leave" — including a day
     // that's also an official holiday (e.g. your office works through a
     // gazetted holiday, so you take it as real personal leave instead).
@@ -1504,7 +1630,7 @@ function computeMonthStats(data, y, m){
   }
   const workingDays = Math.max(0, weekdayCount - officialHolOnWeekday - leaveOnWeekday);
   const officePercent = workingDays>0 ? Math.round((officeDays/workingDays)*100) : 0;
-  return { weekdayCount, weekendCount, workingDays, officeDays, wfhDays, travelDays, homeDays, leaveDays, holidayCount, holidayOverrides, officePercent };
+  return { weekdayCount, weekendCount, workingDays, officeDays, wfhDays, travelDays, leaveDays, holidayCount, holidayOverrides, officePercent };
 }
 function renderStats(data, y, m){
   const s = computeMonthStats(data, y, m);
@@ -1522,7 +1648,6 @@ function renderStats(data, y, m){
     <div class="stat-card office"><div class="stat-num">${s.officeDays}</div><div class="stat-label">Office days</div></div>
     <div class="stat-card wfh"><div class="stat-num">${s.wfhDays}</div><div class="stat-label">WFH days</div></div>
     <div class="stat-card travel"><div class="stat-num">${s.travelDays}</div><div class="stat-label">Travel days</div></div>
-    <div class="stat-card home"><div class="stat-num">${s.homeDays}</div><div class="stat-label">Home / off</div></div>
   `;
   document.getElementById('stickyPercentWrap').innerHTML = percentCardHtml;
   document.getElementById('stickyStatsRow').innerHTML = `
@@ -1663,7 +1788,7 @@ async function checkCatchupBanner(){
     const data = await loadMonth(monthKey(d));
     const dd = data.days[d.getDate()];
     const holiday = officialHolidayFor(d.getFullYear(), d.getMonth(), d.getDate());
-    const logged = !!(dd && (dd.dayType || (dd.notes && dd.notes.trim()!=='') || dd.tag));
+    const logged = !!(dd && (dd.dayType || dd.travel || (dd.notes && dd.notes.trim()!=='') || dd.tag));
     if(!logged && !(holiday && holiday.type==='gazetted')) gaps.push(d);
   }
 
@@ -1760,17 +1885,20 @@ async function renderCalendar(){
     if(explicitType && explicitType!=='leave'){
       badgeHtml = `<div class="daytype-badge ${explicitType}">${DAYTYPE_LETTER[explicitType]}</div>`;
     }
+    const isTravel = !!(dayData && dayData.travel);
+    const travelBadgeHtml = isTravel ? `<div class="travel-badge" title="Traveling">&#9992;</div>` : '';
 
-    const quickActionsHtml = quickActions.length ? `<div class="quick-actions">${quickActions.map(id=>{
+    const quickActionsHtml = `<div class="quick-actions">${quickActions.map(id=>{
       const dt = dayTypeById(id);
       if(!dt) return '';
       const isActive = explicitType===id;
       return `<button type="button" class="qa-btn${isActive?' active':''}" data-daytype="${id}" title="${escapeHtml(dt.label)}" style="background:${dt.color}">${DAYTYPE_LETTER[id]}</button>`;
-    }).join('')}</div>` : '';
+    }).join('')}<button type="button" class="qa-btn qa-travel${isTravel?' active':''}" data-travel="1" title="Toggle travel" style="background:${TRAVEL_COLOR}">&#9992;</button></div>`;
 
     cell.innerHTML = `
       ${tag ? `<div class="tagbar-strip" style="background:${tag.color}"></div>` : ''}
       ${badgeHtml}
+      ${travelBadgeHtml}
       <div class="num">${day}</div>
       ${holiday ? `<div class="holiday-label">${escapeHtml(holiday.name)}</div>` : ''}
       ${(!holiday && explicitType==='leave' && dayData.leaveName) ? `<div class="leave-label">${escapeHtml(dayData.leaveName)}</div>` : ''}
@@ -1781,7 +1909,8 @@ async function renderCalendar(){
     `;
 
     cell.querySelectorAll('.qa-btn').forEach(btn=>{
-      btn.addEventListener('click', (e)=>quickSetDayType(e, day, btn.dataset.daytype));
+      if(btn.dataset.travel) btn.addEventListener('click', (e)=>quickToggleTravel(e, day));
+      else btn.addEventListener('click', (e)=>quickSetDayType(e, day, btn.dataset.daytype));
     });
 
     let longPressFired = false, touchTimer = null;
@@ -1859,13 +1988,15 @@ async function renderWeekAgenda(){
     else if(explicitType==='leave') statusHtml = `<span class="agenda-status leave">🏖 ${escapeHtml(dayData.leaveName || 'Leave')}</span>`;
     else if(eff) statusHtml = `<span class="agenda-status ${eff}">${dayTypeById(eff).label}</span>`;
     else statusHtml = `<span class="agenda-status off">Weekend</span>`;
+    const isTravel = !!(dayData && dayData.travel);
+    const travelTagHtml = isTravel ? `<span class="agenda-tag" style="color:${TRAVEL_COLOR};">✈ Traveling</span>` : '';
 
     const qaHtml = quickActions.map(id=>{
       const dt = dayTypeById(id);
       if(!dt) return '';
       const isActive = explicitType===id;
       return `<button type="button" class="agenda-qa${isActive?' active':''}" data-daytype="${id}" data-y="${y}" data-m="${m}" data-day="${day}" title="${escapeHtml(dt.label)}" style="background:${dt.color}">${DAYTYPE_LETTER[id]}</button>`;
-    }).join('');
+    }).join('') + `<button type="button" class="agenda-qa qa-travel${isTravel?' active':''}" data-travel="1" data-y="${y}" data-m="${m}" data-day="${day}" title="Toggle travel" style="background:${TRAVEL_COLOR}">&#9992;</button>`;
 
     row.innerHTML = `
       <div class="agenda-date">${day}</div>
@@ -1873,6 +2004,7 @@ async function renderWeekAgenda(){
         <div class="agenda-dow">${WEEKDAY_NAMES[idx]}${isToday ? ' · today' : ''}</div>
         ${statusHtml}
         ${tag ? `<span class="agenda-tag" style="color:${tag.color}">${escapeHtml(tag.name)}</span>` : ''}
+        ${travelTagHtml}
       </div>
       <div class="agenda-qa-row">${qaHtml}</div>
     `;
@@ -1880,8 +2012,15 @@ async function renderWeekAgenda(){
     row.querySelectorAll('.agenda-qa').forEach(btn=>{
       btn.addEventListener('click', async (e)=>{
         e.stopPropagation();
-        const by = +btn.dataset.y, bm = +btn.dataset.m, bd = +btn.dataset.day, typeId = btn.dataset.daytype;
-        await setDayType(monthKey(new Date(by, bm, 1)), bd, typeId);
+        const by = +btn.dataset.y, bm = +btn.dataset.m, bd = +btn.dataset.day;
+        if(btn.dataset.travel){
+          const k = monthKey(new Date(by, bm, 1));
+          const d2 = await loadMonth(k);
+          const wasTravel = !!(d2.days[bd] && d2.days[bd].travel);
+          await setDayTravel(k, bd, !wasTravel);
+        } else {
+          await setDayType(monthKey(new Date(by, bm, 1)), bd, btn.dataset.daytype);
+        }
         renderCalendar(); renderCountdown();
       });
     });
@@ -1889,9 +2028,12 @@ async function renderWeekAgenda(){
   });
 }
 
+function hasAnyDayContent(d){
+  return !!(d.notes || d.tag || d.dayType || d.travel || (d.checklist && d.checklist.length>0));
+}
 async function setDayType(key, day, typeId){
   const data = await loadMonth(key);
-  const existing = data.days[day] || {notes:'', tag:null, checklist:[], dayType:null, leaveName:''};
+  const existing = data.days[day] || {notes:'', tag:null, checklist:[], dayType:null, leaveName:'', travel:false};
   if(existing.dayType === typeId){
     existing.dayType = null;
     existing.leaveName = '';
@@ -1899,14 +2041,31 @@ async function setDayType(key, day, typeId){
     existing.dayType = typeId;
     existing.leaveName = typeId==='leave' ? (existing.leaveName || 'Leave') : '';
   }
-  const hasContent = existing.notes || existing.tag || existing.dayType || (existing.checklist && existing.checklist.length>0);
-  if(hasContent) data.days[day] = existing; else delete data.days[day];
+  if(hasAnyDayContent(existing)) data.days[day] = existing; else delete data.days[day];
   monthCache[key] = data;
   await saveMonth(key);
 }
 async function quickSetDayType(e, day, typeId){
   e.stopPropagation();
   await setDayType(monthKey(viewDate), day, typeId);
+  renderCalendar(); renderCountdown();
+}
+// Travel is independent of day type — toggling it never touches dayType,
+// so a day can be Office + Travel, WFH + Travel, Leave + Travel, or just Travel.
+async function setDayTravel(key, day, travel){
+  const data = await loadMonth(key);
+  const existing = data.days[day] || {notes:'', tag:null, checklist:[], dayType:null, leaveName:'', travel:false};
+  existing.travel = travel;
+  if(hasAnyDayContent(existing)) data.days[day] = existing; else delete data.days[day];
+  monthCache[key] = data;
+  await saveMonth(key);
+}
+async function quickToggleTravel(e, day){
+  e.stopPropagation();
+  const key = monthKey(viewDate);
+  const data = await loadMonth(key);
+  const wasTravel = !!(data.days[day] && data.days[day].travel);
+  await setDayTravel(key, day, !wasTravel);
   renderCalendar(); renderCountdown();
 }
 
@@ -1924,7 +2083,8 @@ function showTooltip(e, day, dayData, tag, holiday){
   const tt = document.getElementById('tooltip');
   const explicitType = dayData && dayData.dayType;
   const eff = effectiveDayType(viewDate.getFullYear(), viewDate.getMonth(), day, dayData, holiday);
-  const hasContent = holiday || eff || (dayData && ((dayData.notes && dayData.notes.trim()!=='') || (dayData.checklist && dayData.checklist.length>0)));
+  const isTravel = !!(dayData && dayData.travel);
+  const hasContent = holiday || eff || isTravel || (dayData && ((dayData.notes && dayData.notes.trim()!=='') || (dayData.checklist && dayData.checklist.length>0)));
   if(!hasContent){ tt.style.display='none'; return; }
   let html = `<div class="t-title">${MONTH_NAMES[viewDate.getMonth()]} ${day}${tag?` · ${escapeHtml(tag.name)}`:''}</div>`;
   if(holiday) html += `<div class="t-holiday">🎉 ${escapeHtml(holiday.name)}${holiday.type==='restricted'?' (restricted)':''}</div>`;
@@ -1933,6 +2093,7 @@ function showTooltip(e, day, dayData, tag, holiday){
     const dt = dayTypeById(eff);
     html += `<div class="t-type">${dt.label}${!explicitType ? ' (default)' : ''}</div>`;
   }
+  if(isTravel) html += `<div class="t-type">✈ Traveling</div>`;
   if(dayData && dayData.notes) html += `<div>${escapeHtml(dayData.notes)}</div>`;
   if(dayData && dayData.checklist && dayData.checklist.length){
     html += '<ul>' + dayData.checklist.map(c=>`<li class="${c.done?'done':''}">${escapeHtml(c.text)}</li>`).join('') + '</ul>';
@@ -2009,6 +2170,8 @@ async function openModal(day){
   const dayData = data.days[day] || {notes:'', tag:null, checklist:[], dayType:null, leaveName:''};
   selectedDayTag = dayData.tag || null;
   selectedDayType = dayData.dayType || null;
+  selectedDayTravel = !!dayData.travel;
+  document.getElementById('travelToggle').checked = selectedDayTravel;
 
   const dateObj = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
   document.getElementById('modalTitle').textContent = `${day} ${MONTH_NAMES[viewDate.getMonth()]}`;
@@ -2109,11 +2272,13 @@ document.getElementById('saveDayBtn').addEventListener('click', async ()=>{
   const data = await loadMonth(key);
   const notes = document.getElementById('notesInput').value.trim();
   const leaveName = document.getElementById('leaveNameInput').value.trim();
-  const hasContent = notes || selectedDayTag || selectedDayType || workingChecklist.length>0;
+  selectedDayTravel = document.getElementById('travelToggle').checked;
+  const hasContent = notes || selectedDayTag || selectedDayType || selectedDayTravel || workingChecklist.length>0;
   if(hasContent){
     data.days[selectedDay] = {
       notes, tag: selectedDayTag, checklist: workingChecklist,
-      dayType: selectedDayType, leaveName: selectedDayType==='leave' ? (leaveName || 'Leave') : ''
+      dayType: selectedDayType, leaveName: selectedDayType==='leave' ? (leaveName || 'Leave') : '',
+      travel: selectedDayTravel
     };
   } else delete data.days[selectedDay];
   monthCache[key] = data;
@@ -2236,7 +2401,6 @@ document.getElementById('nextStickyNav').addEventListener('click', stepForward);
 
 /* ---------- Mobile bottom bar ---------- */
 document.getElementById('settingsSyncBtn').addEventListener('click', ()=>document.getElementById('syncBtn').click());
-document.getElementById('bbAlerts').addEventListener('click', ()=>document.getElementById('notifBtn').click());
 document.getElementById('bbMore').addEventListener('click', ()=>document.getElementById('settingsBtn').click());
 document.getElementById('bbCalendar').addEventListener('click', ()=>{ setActiveTab('calendar'); window.scrollTo({top:0, behavior:'smooth'}); });
 document.getElementById('bbAnalytics').addEventListener('click', ()=>setActiveTab('analytics'));
