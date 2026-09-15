@@ -1,0 +1,9 @@
+{
+  "name": "field-planner",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Field Planner - office/WFH/travel/leave day tracker, deployable to Vercel as a PWA with push notifications.",
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}

@@ -1,0 +1,149 @@
+'use strict';
+
+const webpush = require('web-push');
+const { officialHolidayFor, computeMonthStats, monthKey, istNow, findNextTrip } = require('../lib/planner-logic');
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:example@example.com';
+
+// Trip countdown fires this many days out, plus on the day itself (0).
+const TRIP_COUNTDOWN_DAYS = [3, 1, 0];
+// Only nag about a low in-office % once the month is mostly over.
+const LOW_OFFICE_PCT_FROM_DAY = 20;
+const LOW_OFFICE_PCT_TARGET = 60;
+
+async function sbFetch(path, opts = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    method: opts.method || 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: SUPABASE_SERVICE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+      Prefer: opts.prefer || 'return=representation',
+      ...(opts.headers || {})
+    },
+    body: opts.body
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Supabase ${path} failed: ${res.status} ${text}`);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+function parsePlannerData(row) {
+  const out = {};
+  const raw = row && row.data;
+  if (!raw) return out;
+  for (const [k, v] of Object.entries(raw)) {
+    try { out[k] = typeof v === 'string' ? JSON.parse(v) : v; } catch (e) { /* skip malformed entry */ }
+  }
+  return out;
+}
+
+module.exports = async (req, res) => {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+    res.status(500).json({ error: 'Missing SUPABASE_URL / SUPABASE_SERVICE_KEY / VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY env vars' });
+    return;
+  }
+
+  // Vercel Cron sends "Authorization: Bearer <CRON_SECRET>" automatically
+  // when the CRON_SECRET env var is set — reject anything else so this
+  // endpoint can't be triggered by a random request to its public URL.
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret && req.headers['authorization'] !== `Bearer ${cronSecret}`) {
+    res.status(401).json({ error: 'unauthorized' });
+    return;
+  }
+
+  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+
+  const results = [];
+
+  async function sendAndTrack(subRow, payload, patch) {
+    const pushSub = { endpoint: subRow.endpoint, keys: { p256dh: subRow.p256dh, auth: subRow.auth } };
+    try {
+      await webpush.sendNotification(pushSub, JSON.stringify(payload));
+      await sbFetch(`push_subscriptions?id=eq.${subRow.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(patch),
+        prefer: 'return=minimal'
+      });
+      results.push({ endpoint: subRow.endpoint, type: payload.tag, sent: true });
+    } catch (err) {
+      const statusCode = err && (err.statusCode || (err.response && err.response.statusCode));
+      if (statusCode === 404 || statusCode === 410) {
+        await sbFetch(`push_subscriptions?id=eq.${subRow.id}`, { method: 'DELETE', prefer: 'return=minimal' }).catch(() => {});
+      }
+      results.push({ endpoint: subRow.endpoint, type: payload.tag, sent: false, error: String((err && err.message) || err) });
+    }
+  }
+
+  try {
+    const subs = await sbFetch('push_subscriptions?select=*');
+    const bySync = {};
+    for (const sub of subs) (bySync[sub.sync_id] = bySync[sub.sync_id] || []).push(sub);
+
+    const today = istNow();
+    const y = today.getUTCFullYear(), m = today.getUTCMonth(), d = today.getUTCDate();
+    const todayDateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const curMonthKey = monthKey(y, m);
+
+    for (const syncId of Object.keys(bySync)) {
+      const subsForSync = bySync[syncId];
+      const rows = await sbFetch(`planner_sync?sync_id=eq.${encodeURIComponent(syncId)}&select=data`);
+      const data = parsePlannerData(rows[0]);
+      const monthData = data[`month:${curMonthKey}`] || { days: {} };
+      const stats = computeMonthStats(y, m, monthData);
+      const holiday = officialHolidayFor(y, m, d);
+      const dd = monthData.days ? monthData.days[d] : null;
+      const hasLoggedToday = !!(dd && (dd.dayType || (dd.notes && dd.notes.trim() !== '') || dd.tag));
+
+      const trip = findNextTrip(data, today);
+      const diffDays = trip ? Math.round((trip.dateMs - Date.UTC(y, m, d)) / 86400000) : null;
+      const tripDue = trip && TRIP_COUNTDOWN_DAYS.includes(diffDays);
+      const tripKey = tripDue ? `${trip.dateMs}-${trip.tag.id}-${diffDays}` : null;
+
+      const lowOfficePct = d >= LOW_OFFICE_PCT_FROM_DAY && stats.workingDays > 0 && stats.officePercent < LOW_OFFICE_PCT_TARGET;
+
+      for (const sub of subsForSync) {
+        if (!hasLoggedToday && sub.last_daily_reminder_date !== todayDateStr) {
+          await sendAndTrack(sub, {
+            title: "Log today's plan",
+            body: holiday
+              ? `${holiday.name} today — mark it Office/WFH if you worked, or leave it as holiday.`
+              : "You haven't logged today yet — Office, WFH, Travel, Home or Leave?",
+            tag: 'daily-log',
+            url: '/'
+          }, { last_daily_reminder_date: todayDateStr });
+        }
+
+        if (tripDue && sub.last_trip_notif_key !== tripKey) {
+          await sendAndTrack(sub, {
+            title: diffDays === 0 ? `Travel day: ${trip.tag.name}` : `${diffDays} day${diffDays === 1 ? '' : 's'} to ${trip.tag.name}`,
+            body: diffDays === 0 ? "It's here — safe travels!" : 'Time to plan ahead.',
+            tag: 'trip-countdown',
+            url: '/'
+          }, { last_trip_notif_key: tripKey });
+        }
+
+        if (lowOfficePct && sub.last_low_office_month !== curMonthKey) {
+          await sendAndTrack(sub, {
+            title: 'In-office % is trending low',
+            body: `You're at ${stats.officePercent}% in-office this month (target ${LOW_OFFICE_PCT_TARGET}%). ${Math.max(0, stats.workingDays - stats.officeDays)} working day(s) left to catch up.`,
+            tag: 'low-office-pct',
+            url: '/'
+          }, { last_low_office_month: curMonthKey });
+        }
+      }
+    }
+
+    res.status(200).json({ ok: true, syncsChecked: Object.keys(bySync).length, results });
+  } catch (err) {
+    res.status(500).json({ error: String((err && err.message) || err), results });
+  }
+};

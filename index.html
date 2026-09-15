@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Field Planner</title>
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#e8927c" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Field Planner" />
+<link rel="apple-touch-icon" href="/icons/icon-192.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#3b2a4a; --ink-soft:#8577a0;
+    --paper:#fbf5f1; --paper-raised:#fffdfb;
+    --accent:#e8927c; --accent-deep:#d97a63; --accent-soft:#f8ddd3;
+    --sky:#7fa9c9; --sky-deep:#5c86a8; --sky-soft:#e2ecf3;
+    --lavender:#c9b6ea; --lavender-deep:#9a7fc4; --lavender-soft:#efe7fa;
+    --sage:#7fa082; --sage-deep:#598066; --sage-soft:#e2ede2;
+    --rose:#c65b57; --rose-soft:#f6dedb;
+    --line:#f0e0d8; --line-strong:#e3cabd;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 8% 0%, #fdeee7 0%, transparent 45%),
+      radial-gradient(circle at 100% 12%, #f2e8f9 0%, transparent 40%),
+      var(--paper);
+    color:var(--ink); font-family:'Plus Jakarta Sans',sans-serif; -webkit-font-smoothing:antialiased;
+  }
+  .app{ max-width:980px; margin:0 auto; padding:32px 24px 80px; }
+
+  .topbar{ display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line-strong); padding-bottom:16px; margin-bottom:18px; gap:16px; flex-wrap:wrap; }
+  .brand{ font-family:'Fraunces',serif; font-optical-sizing:auto; font-weight:600; font-size:27px; letter-spacing:-0.01em; }
+  .brand span{color:var(--accent-deep);}
+  .month-nav{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .month-label{ font-family:'Fraunces',serif; font-size:20px; font-weight:500; min-width:190px; text-align:center; }
+  .nav-btn{ background:var(--paper-raised); border:1px solid var(--line-strong); color:var(--ink); width:30px;height:30px; border-radius:50%; cursor:pointer; font-size:15px; line-height:1; display:flex;align-items:center;justify-content:center; }
+  .nav-btn:hover{background:var(--accent-soft); border-color:var(--accent);}
+  .pill-btn{ font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:600; color:var(--ink-soft); background:none; border:1px solid var(--line); border-radius:20px; padding:5px 12px; cursor:pointer; }
+  .pill-btn:hover{border-color:var(--accent); color:var(--accent-deep);}
+  .pill-btn.synced{color:var(--sage); border-color:var(--sage);}
+
+  .countdown{ display:flex; align-items:center; gap:16px; background:linear-gradient(120deg, var(--lavender-soft), var(--accent-soft)); border:1px solid var(--line-strong); border-radius:16px; padding:16px 20px; margin-bottom:16px; }
+  .countdown .num{ font-family:'Fraunces',serif; font-weight:700; font-size:34px; color:var(--ink); line-height:1; min-width:56px; }
+  .countdown .num small{ font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:600; color:var(--ink-soft); display:block; margin-top:2px; }
+  .countdown .details{flex:1;}
+  .countdown .details .headline{ font-weight:700; font-size:14.5px; margin-bottom:2px; }
+  .countdown .details .sub{ font-size:12.5px; color:var(--ink-soft); }
+  .countdown .dot-lg{ width:12px;height:12px; border-radius:50%; display:inline-block; margin-right:6px; }
+  .countdown.empty{ color:var(--ink-soft); font-size:13px; justify-content:center; background:var(--paper-raised); }
+
+  .stats-row{ display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin-bottom:8px; }
+  .stat-card{ background:var(--paper-raised); border:1px solid var(--line); border-radius:12px; padding:12px 12px; }
+  .stat-card .stat-num{ font-family:'Fraunces',serif; font-size:22px; font-weight:700; line-height:1; }
+  .stat-card .stat-label{ font-size:10.5px; font-weight:600; color:var(--ink-soft); margin-top:4px; }
+  .stat-card.working .stat-num{color:var(--ink);}
+  .stat-card.office .stat-num{color:var(--accent-deep);}
+  .stat-card.wfh .stat-num{color:var(--sky-deep);}
+  .stat-card.travel .stat-num{color:var(--lavender-deep);}
+  .stat-card.home .stat-num{color:var(--sage-deep);}
+  .stat-card.percent{border-width:1.5px; grid-column:span 1;}
+  .stat-card.percent.ok{border-color:var(--sage);}
+  .stat-card.percent.low{border-color:var(--rose);}
+  .stat-card.percent.ok .stat-num{color:var(--sage-deep);}
+  .stat-card.percent.low .stat-num{color:var(--rose);}
+  .stat-sub{ font-size:10px; color:var(--ink-soft); margin-top:2px; }
+  .pct-bar-track{ position:relative; height:6px; border-radius:4px; background:var(--line); margin-top:8px; overflow:visible; }
+  .pct-bar-fill{ height:100%; border-radius:4px; transition:width .4s ease; }
+  .pct-bar-fill.ok{background:var(--sage);}
+  .pct-bar-fill.low{background:var(--rose);}
+  .pct-bar-target{ position:absolute; top:-3px; bottom:-3px; width:2px; background:var(--ink); left:60%; opacity:0.55; }
+  .info-dot{ display:inline-flex; align-items:center; justify-content:center; width:13px; height:13px; border-radius:50%; background:var(--line-strong); color:var(--paper-raised); font-size:9px; font-weight:700; margin-left:4px; cursor:help; }
+  .cell.is-weekend{ background:#f7f0eb; }
+  .cell.is-weekend:hover{background:#fffef9;}
+  .stats-note{ font-size:11px; color:var(--ink-soft); margin-bottom:18px; }
+
+  .tagbar{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .tagbar-label{ font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-right:4px; }
+  .chip{ display:flex; align-items:center; gap:6px; border:1px solid var(--line-strong); background:var(--paper-raised); border-radius:20px; padding:6px 12px 6px 9px; font-size:12.5px; font-weight:500; cursor:pointer; user-select:none; transition:all .15s; }
+  .chip:hover{border-color:var(--accent); transform:translateY(-1px);}
+  .chip.active{border-color:var(--accent); background:var(--accent-soft);}
+  .chip .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+  .chip .x{margin-left:2px; color:var(--ink-soft); font-size:13px;}
+  .chip .x:hover{color:var(--rose);}
+  .add-tag-btn{ border:1.5px dashed var(--line-strong); background:none; border-radius:20px; padding:6px 14px; font-size:12.5px; font-weight:600; color:var(--ink-soft); cursor:pointer; }
+  .add-tag-btn:hover{border-color:var(--accent); color:var(--accent-deep);}
+  .tag-form{ display:flex; align-items:center; gap:6px; border:1.5px solid var(--accent); border-radius:20px; padding:4px 6px 4px 10px; background:var(--paper-raised); }
+  .tag-form input[type=text]{ border:none; outline:none; font-size:12.5px; font-family:'Plus Jakarta Sans',sans-serif; width:90px; background:none; }
+  .tag-form input[type=color]{ width:22px;height:22px; border:none; padding:0; cursor:pointer; background:none; border-radius:50%; }
+  .tag-form button{ border:none; background:var(--ink); color:var(--paper-raised); border-radius:14px; font-weight:600; font-size:11.5px; padding:5px 10px; cursor:pointer; }
+
+  .holiday-note{ font-size:11px; color:var(--ink-soft); margin-bottom:14px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .holiday-note .swatch{display:inline-flex; align-items:center; gap:5px;}
+  .holiday-note .bar{width:14px; height:4px; border-radius:2px; display:inline-block;}
+
+  .weekdays{ display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:4px; }
+  .weekdays div{ font-size:11.5px; font-weight:600; color:var(--ink-soft); padding:0 4px 8px; border-bottom:1px solid var(--line); }
+  .grid{ display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:100px; gap:6px; }
+  .cell{ background:var(--paper-raised); position:relative; padding:8px; cursor:pointer; transition:all .15s; overflow:hidden; border-radius:10px; border:1px solid var(--line); }
+  .cell.empty{ background:transparent; border:none; cursor:default; }
+  .cell.dimmed{opacity:0.32;}
+  .cell:hover:not(.empty){box-shadow:0 4px 14px rgba(59,42,74,0.08); border-color:var(--accent); transform:translateY(-1px);}
+  .cell .num{ font-family:'Fraunces',serif; font-size:16px; font-weight:500; color:var(--ink); }
+  .cell.is-office{background:#eef7ec;}
+  .cell.is-today{background:var(--lavender-soft);}
+  .cell.is-today .num{ color:var(--accent-deep); font-weight:700; }
+  .cell.is-holiday{border-top:3px solid var(--rose);}
+  .cell.is-restricted{border-top:3px dashed var(--line-strong);}
+  .cell.is-custom-leave{border-top:3px solid var(--lavender-deep);}
+  .cell .holiday-label{ font-size:9.5px; font-weight:700; color:var(--rose); margin-top:2px; line-height:1.2; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; }
+  .cell .leave-label{ font-size:9.5px; font-weight:700; color:var(--lavender-deep); margin-top:1px; line-height:1.2; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; }
+  .cell .tagbar-strip{ position:absolute; left:0;top:0;bottom:0; width:4px; }
+  .cell .plan-preview{ font-size:10.5px; color:var(--ink-soft); margin-top:2px; line-height:1.25; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; }
+  .cell .progress{ position:absolute; bottom:7px; right:8px; font-size:10px; color:var(--sage-deep); font-weight:700; }
+  .cell .city-name{ position:absolute; bottom:7px; left:8px; font-size:9.5px; font-weight:600; color:var(--ink-soft); }
+  .daytype-badge{ position:absolute; top:6px; right:6px; font-size:9px; font-weight:800; width:17px; height:17px; border-radius:5px; display:flex; align-items:center; justify-content:center; color:#fff; }
+  .daytype-badge.office{background:var(--accent);}
+  .daytype-badge.wfh{background:var(--sky-deep);}
+  .daytype-badge.travel{background:var(--lavender-deep);}
+  .daytype-badge.home{background:var(--sage-deep);}
+
+  .cell .quick-actions{ position:absolute; inset:0; display:flex; flex-wrap:wrap; align-content:flex-end; justify-content:center; gap:3px; padding:5px; opacity:0; pointer-events:none; transition:opacity .12s ease; background:rgba(255,253,251,0.94); border-radius:10px; z-index:2; }
+  .cell:hover:not(.empty) .quick-actions{opacity:1; pointer-events:auto;}
+  .quick-actions .qa-btn{ border:none; border-radius:6px; font-size:10px; font-weight:800; color:#fff; width:20px; height:20px; display:flex; align-items:center; justify-content:center; cursor:pointer; line-height:1; box-shadow:0 1px 3px rgba(59,42,74,0.25); }
+  .quick-actions .qa-btn.active{outline:2px solid var(--ink); outline-offset:1px;}
+  .quick-actions .qa-btn:hover{transform:scale(1.1);}
+
+  .settings-list{margin-top:6px;}
+
+  .tooltip{ position:fixed; z-index:50; background:var(--ink); color:var(--paper); border-radius:10px; padding:11px 13px; font-size:12px; max-width:240px; box-shadow:0 8px 22px rgba(59,42,74,0.3); pointer-events:none; display:none; line-height:1.5; }
+  .tooltip .t-title{font-weight:600; margin-bottom:4px; font-family:'Fraunces',serif; font-size:13.5px; color:var(--accent-soft);}
+  .tooltip .t-holiday{color:#f3c6b5; font-weight:600; margin-bottom:2px;}
+  .tooltip .t-leave{color:#d9c9f5; font-weight:600; margin-bottom:2px;}
+  .tooltip .t-type{color:#cfd3e8; font-weight:600; margin-bottom:4px;}
+  .tooltip ul{margin:4px 0 0; padding-left:16px;}
+  .tooltip li{margin-bottom:2px;}
+  .tooltip li.done{opacity:0.55; text-decoration:line-through;}
+
+  .overlay{ position:fixed; inset:0; background:rgba(59,42,74,0.45); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px; opacity:0; visibility:hidden; pointer-events:none; transition:opacity .18s ease; }
+  .overlay.show{opacity:1; visibility:visible; pointer-events:auto;}
+  .modal{ background:var(--paper-raised); width:100%; max-width:480px; max-height:90vh; overflow-y:auto; border-radius:18px; padding:26px; border:1px solid var(--line-strong); position:relative; transform:scale(0.95) translateY(6px); transition:transform .18s ease; }
+  .overlay.show .modal{transform:scale(1) translateY(0);}
+  .modal-close{ position:absolute; top:16px; right:16px; width:28px; height:28px; border-radius:50%; border:1px solid var(--line-strong); background:var(--paper); color:var(--ink-soft); font-size:16px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .modal-close:hover{ background:var(--rose-soft); color:var(--rose); border-color:var(--rose); }
+  .modal h2{ font-family:'Fraunces',serif; font-weight:600; font-size:23px; margin:0 32px 4px 0; }
+  .modal .sub{color:var(--ink-soft); font-size:12.5px; margin-bottom:6px;}
+  .modal .holiday-chip{ display:inline-flex; align-items:center; gap:5px; background:var(--accent-soft); color:var(--rose); font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:12px; margin-bottom:10px; margin-right:6px; }
+  .field-label{ font-size:12px; font-weight:600; color:var(--ink-soft); margin-bottom:6px; display:block; margin-top:14px; }
+  .field-label.first{margin-top:0;}
+  .modal textarea{ width:100%; border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-family:'Plus Jakarta Sans',sans-serif; font-size:13.5px; resize:vertical; min-height:56px; background:var(--paper); }
+  .modal textarea:focus, .add-check input:focus, .leave-name-input:focus{outline:2px solid var(--lavender); border-color:transparent;}
+  .tag-select, .daytype-select{ display:flex; flex-wrap:wrap; gap:6px; }
+  .tag-option, .daytype-option{ display:flex;align-items:center;gap:6px; border:1px solid var(--line-strong); border-radius:16px; padding:5px 12px; font-size:12px; font-weight:500; cursor:pointer; }
+  .tag-option.selected{border-color:var(--accent); background:var(--accent-soft);}
+  .daytype-option.selected{border-color:var(--ink); background:var(--lavender-soft);}
+  .tag-option .dot, .daytype-option .dot{width:8px;height:8px;border-radius:50%;}
+  .tag-option.none, .daytype-option.none{color:var(--ink-soft);}
+  .daytype-hint{ font-size:10.5px; color:var(--ink-soft); margin-top:6px; }
+  .leave-name-input{ width:100%; border:1px solid var(--line); border-radius:10px; padding:8px 10px; font-size:13px; font-family:'Plus Jakarta Sans',sans-serif; background:var(--paper); margin-top:8px; }
+  .checklist{margin-top:6px;}
+  .check-item{ display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid var(--line); font-size:13.5px; }
+  .check-item input[type=checkbox]{ width:17px;height:17px; accent-color:var(--sage); cursor:pointer; }
+  .check-item span{flex:1;}
+  .check-item.done span{color:var(--ink-soft); text-decoration:line-through;}
+  .check-item .del{ color:var(--ink-soft); cursor:pointer; font-size:15px; padding:0 4px; }
+  .check-item .del:hover{color:var(--rose);}
+  .add-check{ display:flex; gap:6px; margin-top:8px; }
+  .add-check input{ flex:1; border:1px solid var(--line); border-radius:10px; padding:8px 10px; font-size:13px; font-family:'Plus Jakarta Sans',sans-serif; background:var(--paper); }
+  .add-check button{ border:1px solid var(--line-strong); background:none; border-radius:10px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer; }
+  .add-check button:hover{border-color:var(--accent); color:var(--accent-deep);}
+  .modal-actions{ display:flex; justify-content:space-between; align-items:center; margin-top:18px; padding-top:14px; border-top:1px solid var(--line); }
+  .btn-primary{ background:var(--ink); color:var(--paper-raised); border:none; border-radius:20px; padding:10px 20px; font-size:13.5px; font-weight:600; cursor:pointer; }
+  .btn-primary:hover{background:#291d38;}
+  .btn-text{ background:none; border:none; color:var(--ink-soft); font-size:13px; font-weight:500; cursor:pointer; }
+  .btn-text:hover{color:var(--rose);}
+  .save-indicator{ font-size:11px; font-weight:600; color:var(--sage); position:fixed; bottom:18px; right:18px; background:var(--paper-raised); border:1px solid var(--line); padding:7px 14px; border-radius:20px; opacity:0; transition:opacity .3s; }
+  .save-indicator.show{opacity:1;}
+
+  @media (max-width:640px){
+    .grid{grid-auto-rows:84px;}
+    .cell .plan-preview{display:none;}
+    .month-nav{width:100%; justify-content:space-between;}
+    .countdown{flex-wrap:wrap;}
+    .stats-row{grid-template-columns:repeat(3,1fr);}
+    .stat-card.percent{grid-column:1 / -1;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="topbar">
+    <div class="brand">Field <span>Planner</span></div>
+    <div class="month-nav">
+      <button class="nav-btn" id="prevMonth">&larr;</button>
+      <div class="month-label" id="monthLabel"></div>
+      <button class="nav-btn" id="nextMonth">&rarr;</button>
+      <button class="pill-btn" id="gotoToday">Today</button>
+      <button class="pill-btn" id="settingsBtn">⚙ Quick actions</button>
+      <button class="pill-btn" id="syncBtn">Cloud sync</button>
+      <button class="pill-btn" id="notifBtn">🔔 Notifications</button>
+    </div>
+  </div>
+
+  <div class="countdown" id="countdown"></div>
+
+  <div class="stats-row" id="statsRow"></div>
+  <div class="stats-note">Mon–Fri default to <strong>Work from home</strong> — mark the days you actually went to office. National holidays default to excluded from working days, but marking one Office or WFH counts it as worked instead. Leave always reduces the working-days total. Target: 60% of working days in office.</div>
+
+  <div class="tagbar" id="tagbar"><span class="tagbar-label">Filter by city:</span></div>
+
+  <div class="holiday-note">
+    <span class="swatch"><span class="bar" style="background:#c65b57"></span>UP gazetted holiday</span>
+    <span class="swatch"><span class="bar" style="background:#e3cabd; border:1px dashed #c65b57;"></span>UP restricted holiday</span>
+    <span class="swatch"><span class="bar" style="background:#9a7fc4"></span>Your custom leave/holiday</span>
+  </div>
+
+  <div class="weekdays">
+    <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <button class="modal-close" id="modalCloseBtn">&times;</button>
+    <h2 id="modalTitle">14 September</h2>
+    <div class="sub" id="modalSub">Sunday · 2026</div>
+    <div id="holidayChipWrap"></div>
+
+    <span class="field-label first">Where are you / what's the plan</span>
+    <textarea id="notesInput" placeholder="e.g. Fly to Goa, check in at hotel by 3pm, client call at 6pm"></textarea>
+
+    <span class="field-label">Day type</span>
+    <div class="daytype-select" id="daytypeSelect"></div>
+    <div class="daytype-hint" id="daytypeHint"></div>
+    <input type="text" id="leaveNameInput" class="leave-name-input" placeholder="Name this leave/holiday (e.g. Sick leave, Diwali break)" style="display:none;" />
+
+    <span class="field-label">City / trip tag</span>
+    <div class="tag-select" id="tagSelect"></div>
+
+    <span class="field-label">Checklist</span>
+    <div class="checklist" id="checklist"></div>
+    <div class="add-check">
+      <input type="text" id="newCheckInput" placeholder="Add a to-do and press Enter" />
+      <button id="addCheckBtn">Add</button>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-text" id="clearDayBtn">Clear this day</button>
+      <button class="btn-primary" id="saveDayBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="settingsOverlay">
+  <div class="modal">
+    <button class="modal-close" id="settingsCloseBtn">&times;</button>
+    <h2>Quick actions</h2>
+    <div class="sub">Choose which day types show as one-click buttons when you hover over a calendar day. Click a shortcut to set it, click again to clear it.</div>
+    <div class="settings-list" id="quickSettingsList"></div>
+  </div>
+</div>
+
+<div class="save-indicator" id="saveIndicator">Saved</div>
+
+<script>
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+const HOLIDAYS_UP_2026 = {
+  '2026-01-01':{name:"New Year's Day", type:'restricted'},
+  '2026-01-03':{name:"Hazrat Ali's Birthday", type:'restricted'},
+  '2026-01-05':{name:'Guru Gobind Singh Jayanti', type:'restricted'},
+  '2026-01-14':{name:'Makar Sankranti', type:'gazetted'},
+  '2026-01-23':{name:'Basant Panchami', type:'gazetted'},
+  '2026-01-24':{name:'Jannayak Karpoori Thakur Jayanti', type:'restricted'},
+  '2026-01-26':{name:'Republic Day', type:'gazetted'},
+  '2026-02-01':{name:'Sant Ravidas Jayanti', type:'restricted'},
+  '2026-02-04':{name:'Shab-e-Barat', type:'restricted'},
+  '2026-02-15':{name:'Maha Shivratri', type:'gazetted'},
+  '2026-03-02':{name:'Holika Dahan', type:'gazetted'},
+  '2026-03-04':{name:'Holi', type:'gazetted'},
+  '2026-03-05':{name:'Day following Holi', type:'gazetted'},
+  '2026-03-13':{name:'Jamat-ul-Vida (Alvida)', type:'restricted'},
+  '2026-03-21':{name:'Eid ul-Fitr', type:'gazetted'},
+  '2026-03-26':{name:'Ram Navami', type:'gazetted'},
+  '2026-03-31':{name:'Mahavir Jayanti', type:'gazetted'},
+  '2026-04-03':{name:'Good Friday', type:'gazetted'},
+  '2026-04-14':{name:'Dr. B.R. Ambedkar Jayanti', type:'gazetted'},
+  '2026-04-19':{name:'Parshuram Jayanti', type:'restricted'},
+  '2026-05-01':{name:'Buddha Purnima', type:'gazetted'},
+  '2026-05-27':{name:'Eid ul-Adha (Bakrid)', type:'gazetted'},
+  '2026-06-25':{name:'Muharram', type:'gazetted'},
+  '2026-08-15':{name:'Independence Day', type:'gazetted'},
+  '2026-08-26':{name:'Eid-e-Milad (Barawafat)', type:'gazetted'},
+  '2026-08-28':{name:'Raksha Bandhan', type:'gazetted'},
+  '2026-09-04':{name:'Janmashtami', type:'gazetted'},
+  '2026-09-17':{name:'Vishwakarma Puja', type:'restricted'},
+  '2026-10-02':{name:'Gandhi Jayanti', type:'gazetted'},
+  '2026-10-19':{name:'Dussehra (Maha Ashtami)', type:'gazetted'},
+  '2026-10-20':{name:'Vijayadashami', type:'gazetted'},
+  '2026-10-26':{name:'Valmiki Jayanti / Patel Jayanti', type:'gazetted'},
+  '2026-11-08':{name:'Deepawali', type:'gazetted'},
+  '2026-11-09':{name:'Govardhan Puja', type:'gazetted'},
+  '2026-11-11':{name:'Bhaiya Dooj / Chitragupt Jayanti', type:'gazetted'},
+  '2026-11-15':{name:'Chhath Puja', type:'gazetted'},
+  '2026-11-24':{name:'Guru Nanak Jayanti', type:'gazetted'},
+  '2026-12-23':{name:'Chaudhary Charan Singh Jayanti', type:'restricted'},
+  '2026-12-25':{name:'Christmas Day', type:'gazetted'}
+};
+
+const DAYTYPES = [
+  {id:'office', label:'Office', color:'#e8927c', hint:'Counts toward your in-office %.'},
+  {id:'wfh', label:'Work from home', color:'#5c86a8', hint:'Counts as a working day, not office.'},
+  {id:'travel', label:'Travel', color:'#9a7fc4', hint:'Marked as a travel day.'},
+  {id:'home', label:'Home / off', color:'#598066', hint:'A non-work day at home (not a formal leave).'},
+  {id:'leave', label:'Leave / holiday', color:'#c65b57', hint:'Reduces your total working days for the month.'}
+];
+function dayTypeById(id){ return DAYTYPES.find(d=>d.id===id); }
+const DAYTYPE_LETTER = {office:'O', wfh:'W', travel:'T', home:'H', leave:'L'};
+
+const DEFAULT_QUICK_ACTIONS = ['office','wfh','leave'];
+function loadQuickActions(){
+  try{
+    const raw = localStorage.getItem('quickActions');
+    return raw ? JSON.parse(raw) : DEFAULT_QUICK_ACTIONS.slice();
+  }catch(e){ return DEFAULT_QUICK_ACTIONS.slice(); }
+}
+function saveQuickActions(){ try{ localStorage.setItem('quickActions', JSON.stringify(quickActions)); }catch(e){} }
+let quickActions = loadQuickActions();
+
+let today = new Date();
+let viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
+let tags = [];
+let monthCache = {};
+let activeFilters = new Set();
+let selectedDay = null;
+let selectedDayTag = null;
+let selectedDayType = null;
+let workingChecklist = [];
+
+function monthKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+function dateKey(y,m,day){ return `${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`; }
+function officialHolidayFor(y,m,day){ return HOLIDAYS_UP_2026[dateKey(y,m,day)] || null; }
+
+// Weekdays default to "work from home" automatically unless overridden, or it's a
+// weekend, or it's an official gazetted (national) holiday — those default to
+// excluded/holiday instead, since not every company observes them the same way.
+// Explicit choices always win, including choosing Office/WFH on a holiday to
+// mark that you actually worked that day.
+function effectiveDayType(y,m,day,dayData,holiday){
+  if(dayData && dayData.dayType) return dayData.dayType;
+  const dow = new Date(y,m,day).getDay();
+  const isWeekend = (dow===0 || dow===6);
+  if(isWeekend) return null;
+  if(holiday && holiday.type==='gazetted') return null;
+  return 'wfh';
+}
+
+async function safeGet(key){ try{ return localStorage.getItem(key); }catch(e){ return null; } }
+async function safeSet(key, value){
+  try{ localStorage.setItem(key, value); flashSaved('Saved'); pushToCloud(); }
+  catch(e){ console.error('storage set failed', e); }
+}
+function flashSaved(label){
+  const el = document.getElementById('saveIndicator');
+  el.textContent = label; el.classList.add('show');
+  clearTimeout(flashSaved._t);
+  flashSaved._t = setTimeout(()=>el.classList.remove('show'), 1100);
+}
+
+async function loadTags(){
+  const raw = await safeGet('tags');
+  tags = raw ? JSON.parse(raw) : [
+    {id:'t1', name:'Home', color:'#7fa082'},
+    {id:'t2', name:'Travel', color:'#e8927c'}
+  ];
+}
+async function saveTags(){ await safeSet('tags', JSON.stringify(tags)); }
+
+async function loadMonth(key){
+  if(monthCache[key]) return monthCache[key];
+  const raw = await safeGet(`month:${key}`);
+  const data = raw ? JSON.parse(raw) : {days:{}};
+  monthCache[key] = data;
+  return data;
+}
+async function saveMonth(key){ await safeSet(`month:${key}`, JSON.stringify(monthCache[key])); }
+function tagById(id){ return tags.find(t=>t.id===id); }
+
+/* ---------- Cloud sync ---------- */
+function getSyncId(){
+  let id = localStorage.getItem('_sync_id');
+  if(!id){ id = 'plan-' + Math.random().toString(36).slice(2,10); localStorage.setItem('_sync_id', id); }
+  return id;
+}
+function cloudConfig(){ return { url: localStorage.getItem('_sb_url'), key: localStorage.getItem('_sb_key') }; }
+function isCloudConfigured(){ const c = cloudConfig(); return !!(c.url && c.key); }
+function collectLocalData(){
+  const out = {};
+  for(let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    if(k==='tags' || (k && k.startsWith('month:'))) out[k] = localStorage.getItem(k);
+  }
+  return out;
+}
+async function pushToCloud(){
+  if(!isCloudConfigured()) return;
+  const c = cloudConfig();
+  try{
+    await fetch(`${c.url}/rest/v1/planner_sync`, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'apikey': c.key, 'Authorization': `Bearer ${c.key}`, 'Prefer':'resolution=merge-duplicates' },
+      body: JSON.stringify({ sync_id: getSyncId(), data: collectLocalData(), updated_at: new Date().toISOString() })
+    });
+    updateSyncPill(true);
+  }catch(e){ console.error('cloud push failed', e); updateSyncPill(false, true); }
+}
+async function pullFromCloud(showFlash){
+  if(!isCloudConfigured()) return;
+  const c = cloudConfig();
+  try{
+    const res = await fetch(`${c.url}/rest/v1/planner_sync?sync_id=eq.${encodeURIComponent(getSyncId())}&select=data,updated_at`, {
+      headers:{ 'apikey': c.key, 'Authorization': `Bearer ${c.key}` }
+    });
+    const rows = await res.json();
+    if(rows && rows[0] && rows[0].data){
+      Object.entries(rows[0].data).forEach(([k,v])=>{ if(v!=null) localStorage.setItem(k,v); });
+      monthCache = {};
+      await loadTags(); renderTagbar(); await renderCalendar(); await renderCountdown();
+      if(showFlash) flashSaved('Synced');
+    }
+    updateSyncPill(true);
+  }catch(e){ console.error('cloud pull failed', e); updateSyncPill(false, true); }
+}
+function updateSyncPill(ok, errored){
+  const btn = document.getElementById('syncBtn');
+  if(!isCloudConfigured()){ btn.textContent = 'Cloud sync: off'; btn.className = 'pill-btn'; return; }
+  if(errored){ btn.textContent = 'Cloud sync: error'; btn.className='pill-btn'; return; }
+  btn.textContent = 'Cloud sync: on'; btn.className = 'pill-btn synced';
+}
+document.getElementById('syncBtn').addEventListener('click', ()=>{
+  const c = cloudConfig();
+  const url = prompt('Supabase Project URL (from your free project settings):', c.url || 'https://xxxx.supabase.co');
+  if(url===null) return;
+  const key = prompt('Supabase anon public API key:', c.key || '');
+  if(key===null) return;
+  const code = prompt('Sync code — use the SAME code on every device you want linked:', getSyncId());
+  if(code===null) return;
+  if(url.trim()) localStorage.setItem('_sb_url', url.trim());
+  if(key.trim()) localStorage.setItem('_sb_key', key.trim());
+  if(code.trim()) localStorage.setItem('_sync_id', code.trim());
+  monthCache = {};
+  updateSyncPill(true);
+  pullFromCloud(true).then(()=>pushToCloud());
+});
+
+/* ---------- Push notifications ---------- */
+const VAPID_PUBLIC_KEY = 'BEqh5UEkvgKbRd6HwU8irO5t6ykzzjdy77aYjqq6Gj0jy1zweqdZuOwhn2dtIyba4DHM-BjBAJR2PpQO5XPxnQQ';
+
+function urlBase64ToUint8Array(base64String){
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+
+async function registerServiceWorker(){
+  if(!('serviceWorker' in navigator)) return null;
+  try{ return await navigator.serviceWorker.register('/sw.js'); }
+  catch(e){ console.error('service worker registration failed', e); return null; }
+}
+
+function pushSupported(){
+  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+}
+
+async function updateNotifPill(){
+  const btn = document.getElementById('notifBtn');
+  if(!pushSupported()){ btn.textContent = '🔔 Notifications: unsupported'; btn.className = 'pill-btn'; btn.disabled = true; return; }
+  if(Notification.permission === 'denied'){ btn.textContent = '🔔 Notifications: blocked'; btn.className = 'pill-btn'; return; }
+  const reg = await navigator.serviceWorker.ready.catch(()=>null);
+  const existing = reg ? await reg.pushManager.getSubscription() : null;
+  if(existing){ btn.textContent = '🔔 Notifications: on'; btn.className = 'pill-btn synced'; }
+  else{ btn.textContent = '🔔 Notifications'; btn.className = 'pill-btn'; }
+}
+
+async function enablePushNotifications(){
+  if(!pushSupported()){ alert("This browser doesn't support push notifications."); return; }
+  if(!isCloudConfigured()){
+    alert('Set up Cloud sync first (the button next to this one) — notifications are computed from your synced data, so the app needs somewhere to read it from.');
+    return;
+  }
+  const permission = await Notification.requestPermission();
+  if(permission !== 'granted'){ await updateNotifPill(); return; }
+
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if(!sub){
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+  }
+  try{
+    const r = await fetch('/api/save-subscription', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ syncId: getSyncId(), subscription: sub.toJSON() })
+    });
+    if(!r.ok) throw new Error('save-subscription failed');
+    flashSaved('Notifications on');
+  }catch(e){
+    console.error('failed to save push subscription', e);
+    alert('Could not reach the notification server. Make sure this is deployed on Vercel with the notification backend configured.');
+  }
+  await updateNotifPill();
+}
+
+async function disablePushNotifications(){
+  const reg = await navigator.serviceWorker.ready.catch(()=>null);
+  const sub = reg ? await reg.pushManager.getSubscription() : null;
+  if(sub){
+    const endpoint = sub.endpoint;
+    await sub.unsubscribe().catch(()=>{});
+    fetch('/api/remove-subscription', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint })
+    }).catch(()=>{});
+  }
+  await updateNotifPill();
+}
+
+document.getElementById('notifBtn').addEventListener('click', async ()=>{
+  if(!pushSupported()) return;
+  const reg = await navigator.serviceWorker.ready.catch(()=>null);
+  const existing = reg ? await reg.pushManager.getSubscription() : null;
+  if(existing){
+    if(confirm('Turn off push notifications on this device?')) await disablePushNotifications();
+  } else {
+    await enablePushNotifications();
+  }
+});
+
+/* ---------- Countdown ---------- */
+async function computeNextTrip(){
+  const todayZero = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  let searchDate = new Date(today.getFullYear(), today.getMonth(), 1);
+  for(let i=0;i<15;i++){
+    const key = monthKey(searchDate);
+    const data = await loadMonth(key);
+    const daysInMonth = new Date(searchDate.getFullYear(), searchDate.getMonth()+1, 0).getDate();
+    for(let day=1; day<=daysInMonth; day++){
+      const dayData = data.days[day];
+      if(dayData && dayData.tag){
+        const dateObj = new Date(searchDate.getFullYear(), searchDate.getMonth(), day);
+        if(dateObj >= todayZero){
+          const tag = tagById(dayData.tag);
+          if(tag) return {date: dateObj, tag, day};
+        }
+      }
+    }
+    searchDate = new Date(searchDate.getFullYear(), searchDate.getMonth()+1, 1);
+  }
+  return null;
+}
+async function renderCountdown(){
+  const el = document.getElementById('countdown');
+  const trip = await computeNextTrip();
+  if(!trip){ el.className = 'countdown empty'; el.innerHTML = `Tag an upcoming date with a city to start your countdown &nbsp;✦`; return; }
+  const todayZero = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const diffDays = Math.round((trip.date - todayZero) / 86400000);
+  const dateLabel = `${DAY_NAMES[trip.date.getDay()].slice(0,3)}, ${trip.date.getDate()} ${MONTH_NAMES[trip.date.getMonth()]}`;
+  el.className = 'countdown';
+  el.innerHTML = `
+    <div class="num">${diffDays===0?'Today':diffDays}${diffDays>0?`<small>day${diffDays===1?'':'s'} to go</small>`:''}</div>
+    <div class="details">
+      <div class="headline"><span class="dot-lg" style="background:${trip.tag.color}"></span>${escapeHtml(trip.tag.name)}</div>
+      <div class="sub">${dateLabel}</div>
+    </div>`;
+}
+
+/* ---------- Working-day / office / wfh / travel / home stats ---------- */
+function computeMonthStats(data){
+  const y = viewDate.getFullYear(), m = viewDate.getMonth();
+  const daysInMonth = new Date(y, m+1, 0).getDate();
+  let weekdayCount=0, weekendCount=0, officialHolOnWeekday=0, leaveOnWeekday=0;
+  let officeDays=0, wfhDays=0, travelDays=0, homeDays=0, leaveDays=0;
+  for(let day=1; day<=daysInMonth; day++){
+    const dow = new Date(y,m,day).getDay();
+    const isWeekend = (dow===0 || dow===6);
+    if(isWeekend) weekendCount++; else weekdayCount++;
+    const holiday = officialHolidayFor(y,m,day);
+    const dd = data.days[day];
+    const explicit = dd && dd.dayType;
+    const effective = effectiveDayType(y,m,day,dd,holiday);
+    const isGazetted = holiday && holiday.type==='gazetted';
+    // If the user explicitly worked (office/wfh/travel/home) on a national holiday,
+    // it no longer counts against the denominator — only an un-overridden or
+    // explicitly-leave holiday reduces working days.
+    const workedThroughHoliday = explicit==='office' || explicit==='wfh' || explicit==='travel' || explicit==='home';
+
+    if(!isWeekend){
+      if(isGazetted && !workedThroughHoliday) officialHolOnWeekday++;
+      else if(!isGazetted && explicit==='leave') leaveOnWeekday++;
+    }
+    if(effective==='office') officeDays++;
+    else if(effective==='wfh') wfhDays++;
+    else if(effective==='travel') travelDays++;
+    else if(effective==='home') homeDays++;
+    if(explicit==='leave') leaveDays++;
+  }
+  const workingDays = Math.max(0, weekdayCount - officialHolOnWeekday - leaveOnWeekday);
+  const officePercent = workingDays>0 ? Math.round((officeDays/workingDays)*100) : 0;
+  return { weekdayCount, weekendCount, workingDays, officeDays, wfhDays, travelDays, homeDays, leaveDays, officePercent };
+}
+function renderStats(data){
+  const s = computeMonthStats(data);
+  const el = document.getElementById('statsRow');
+  const pctClass = s.officePercent >= 60 ? 'ok' : 'low';
+  el.innerHTML = `
+    <div class="stat-card working"><div class="stat-num">${s.workingDays}</div><div class="stat-label">Working days</div><div class="stat-sub">excl. Sat/Sun &amp; holidays</div></div>
+    <div class="stat-card percent ${pctClass}">
+      <div class="stat-num">${s.officePercent}%</div>
+      <div class="stat-label">In-office<span class="info-dot" title="Office days ÷ Working days. Working days = weekdays − official holidays − leave taken. WFH and travel days count as worked, but not toward this %.">i</span></div>
+      <div class="pct-bar-track"><div class="pct-bar-fill ${pctClass}" style="width:${Math.min(s.officePercent,100)}%"></div><div class="pct-bar-target"></div></div>
+      <div class="stat-sub">${s.officeDays}/${s.workingDays} days · target 60%</div>
+    </div>
+    <div class="stat-card office"><div class="stat-num">${s.officeDays}</div><div class="stat-label">Office days</div></div>
+    <div class="stat-card wfh"><div class="stat-num">${s.wfhDays}</div><div class="stat-label">WFH days</div></div>
+    <div class="stat-card travel"><div class="stat-num">${s.travelDays}</div><div class="stat-label">Travel days</div></div>
+    <div class="stat-card home"><div class="stat-num">${s.homeDays}</div><div class="stat-label">Home / off</div></div>
+  `;
+}
+
+/* ---------- Calendar rendering ---------- */
+async function renderCalendar(){
+  document.getElementById('monthLabel').textContent = `${MONTH_NAMES[viewDate.getMonth()]} ${viewDate.getFullYear()}`;
+  const key = monthKey(viewDate);
+  const data = await loadMonth(key);
+  renderStats(data);
+
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  const firstOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+  let startOffset = (firstOfMonth.getDay() + 6) % 7;
+  const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth()+1, 0).getDate();
+
+  for(let i=0;i<startOffset;i++){
+    const empty = document.createElement('div'); empty.className = 'cell empty'; grid.appendChild(empty);
+  }
+
+  for(let day=1; day<=daysInMonth; day++){
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    const dayData = data.days[day];
+    const isToday = viewDate.getFullYear()===today.getFullYear() && viewDate.getMonth()===today.getMonth() && day===today.getDate();
+    if(isToday) cell.classList.add('is-today');
+    const cellDow = new Date(viewDate.getFullYear(), viewDate.getMonth(), day).getDay();
+    if((cellDow===0 || cellDow===6) && !isToday) cell.classList.add('is-weekend');
+
+    const holiday = officialHolidayFor(viewDate.getFullYear(), viewDate.getMonth(), day);
+    const explicitType = dayData && dayData.dayType;
+    if(holiday) cell.classList.add(holiday.type==='gazetted' ? 'is-holiday' : 'is-restricted');
+    else if(explicitType==='leave') cell.classList.add('is-custom-leave');
+    if(explicitType==='office') cell.classList.add('is-office');
+
+    let tag = null;
+    if(dayData && dayData.tag) tag = tagById(dayData.tag);
+
+    if(activeFilters.size>0){
+      const matches = tag && activeFilters.has(tag.id);
+      if(!matches) cell.classList.add('dimmed');
+    }
+
+    // Only badge EXPLICIT overrides — default weekday "Office" stays clean/unmarked.
+    let badgeHtml = '';
+    if(explicitType && explicitType!=='leave'){
+      badgeHtml = `<div class="daytype-badge ${explicitType}">${DAYTYPE_LETTER[explicitType]}</div>`;
+    }
+
+    const quickActionsHtml = quickActions.length ? `<div class="quick-actions">${quickActions.map(id=>{
+      const dt = dayTypeById(id);
+      if(!dt) return '';
+      const isActive = explicitType===id;
+      return `<button type="button" class="qa-btn${isActive?' active':''}" data-daytype="${id}" title="${escapeHtml(dt.label)}" style="background:${dt.color}">${DAYTYPE_LETTER[id]}</button>`;
+    }).join('')}</div>` : '';
+
+    cell.innerHTML = `
+      ${tag ? `<div class="tagbar-strip" style="background:${tag.color}"></div>` : ''}
+      ${badgeHtml}
+      <div class="num">${day}</div>
+      ${holiday ? `<div class="holiday-label">${escapeHtml(holiday.name)}</div>` : ''}
+      ${(!holiday && explicitType==='leave' && dayData.leaveName) ? `<div class="leave-label">${escapeHtml(dayData.leaveName)}</div>` : ''}
+      ${dayData && dayData.notes ? `<div class="plan-preview">${escapeHtml(dayData.notes)}</div>` : ''}
+      ${tag ? `<div class="city-name">${escapeHtml(tag.name)}</div>` : ''}
+      ${renderProgressBadge(dayData)}
+      ${quickActionsHtml}
+    `;
+
+    cell.querySelectorAll('.qa-btn').forEach(btn=>{
+      btn.addEventListener('click', (e)=>quickSetDayType(e, day, btn.dataset.daytype));
+    });
+
+    cell.addEventListener('click', ()=>openModal(day));
+    cell.addEventListener('mouseenter', (e)=>showTooltip(e, day, dayData, tag, holiday));
+    cell.addEventListener('mousemove', (e)=>positionTooltip(e));
+    cell.addEventListener('mouseleave', hideTooltip);
+    grid.appendChild(cell);
+  }
+}
+
+async function quickSetDayType(e, day, typeId){
+  e.stopPropagation();
+  const key = monthKey(viewDate);
+  const data = await loadMonth(key);
+  const existing = data.days[day] || {notes:'', tag:null, checklist:[], dayType:null, leaveName:''};
+  if(existing.dayType === typeId){
+    existing.dayType = null;
+    existing.leaveName = '';
+  } else {
+    existing.dayType = typeId;
+    existing.leaveName = typeId==='leave' ? (existing.leaveName || 'Leave') : '';
+  }
+  const hasContent = existing.notes || existing.tag || existing.dayType || (existing.checklist && existing.checklist.length>0);
+  if(hasContent) data.days[day] = existing; else delete data.days[day];
+  monthCache[key] = data;
+  await saveMonth(key);
+  renderCalendar(); renderCountdown();
+}
+
+function renderProgressBadge(dayData){
+  if(!dayData || !dayData.checklist || dayData.checklist.length===0) return '';
+  const total = dayData.checklist.length;
+  const done = dayData.checklist.filter(c=>c.done).length;
+  return `<div class="progress">${done}/${total}</div>`;
+}
+function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+/* ---------- Tooltip ---------- */
+function showTooltip(e, day, dayData, tag, holiday){
+  const tt = document.getElementById('tooltip');
+  const explicitType = dayData && dayData.dayType;
+  const eff = effectiveDayType(viewDate.getFullYear(), viewDate.getMonth(), day, dayData, holiday);
+  const hasContent = holiday || eff || (dayData && ((dayData.notes && dayData.notes.trim()!=='') || (dayData.checklist && dayData.checklist.length>0)));
+  if(!hasContent){ tt.style.display='none'; return; }
+  let html = `<div class="t-title">${MONTH_NAMES[viewDate.getMonth()]} ${day}${tag?` · ${escapeHtml(tag.name)}`:''}</div>`;
+  if(holiday) html += `<div class="t-holiday">🎉 ${escapeHtml(holiday.name)}${holiday.type==='restricted'?' (restricted)':''}</div>`;
+  if(explicitType==='leave' && dayData.leaveName && !holiday) html += `<div class="t-leave">🏖 ${escapeHtml(dayData.leaveName)}</div>`;
+  if(eff && eff!=='leave'){
+    const dt = dayTypeById(eff);
+    html += `<div class="t-type">${dt.label}${!explicitType ? ' (default)' : ''}</div>`;
+  }
+  if(dayData && dayData.notes) html += `<div>${escapeHtml(dayData.notes)}</div>`;
+  if(dayData && dayData.checklist && dayData.checklist.length){
+    html += '<ul>' + dayData.checklist.map(c=>`<li class="${c.done?'done':''}">${escapeHtml(c.text)}</li>`).join('') + '</ul>';
+  }
+  tt.innerHTML = html; tt.style.display='block'; positionTooltip(e);
+}
+function positionTooltip(e){
+  const tt = document.getElementById('tooltip');
+  if(tt.style.display!=='block') return;
+  const x = Math.min(e.clientX + 16, window.innerWidth - 260);
+  const y = Math.min(e.clientY + 12, window.innerHeight - 150);
+  tt.style.left = x+'px'; tt.style.top = y+'px';
+}
+function hideTooltip(){ document.getElementById('tooltip').style.display='none'; }
+
+/* ---------- Tag bar ---------- */
+function renderTagbar(){
+  const bar = document.getElementById('tagbar');
+  bar.innerHTML = '<span class="tagbar-label">Filter by city:</span>';
+  tags.forEach(tag=>{
+    const chip = document.createElement('div');
+    chip.className = 'chip' + (activeFilters.has(tag.id) ? ' active' : '');
+    chip.innerHTML = `<span class="dot" style="background:${tag.color}"></span>${escapeHtml(tag.name)}<span class="x" data-id="${tag.id}">&times;</span>`;
+    chip.addEventListener('click', (e)=>{
+      if(e.target.classList.contains('x')){
+        e.stopPropagation();
+        if(confirm(`Remove city tag "${tag.name}"? Days keep their plans, just lose the color.`)){
+          tags = tags.filter(t=>t.id!==tag.id);
+          activeFilters.delete(tag.id);
+          saveTags(); renderTagbar(); renderCalendar(); renderCountdown();
+        }
+        return;
+      }
+      if(activeFilters.has(tag.id)) activeFilters.delete(tag.id); else activeFilters.add(tag.id);
+      renderTagbar(); renderCalendar();
+    });
+    bar.appendChild(chip);
+  });
+  const addBtn = document.createElement('button');
+  addBtn.className = 'add-tag-btn'; addBtn.textContent = '+ Add city';
+  addBtn.addEventListener('click', ()=>showTagForm(bar, addBtn));
+  bar.appendChild(addBtn);
+}
+function showTagForm(bar, addBtn){
+  const form = document.createElement('div');
+  form.className = 'tag-form';
+  form.innerHTML = `<input type="color" value="#c9b6ea" /><input type="text" placeholder="City name" maxlength="18" /><button>Add</button>`;
+  bar.replaceChild(form, addBtn);
+  const colorInput = form.querySelector('input[type=color]');
+  const textInput = form.querySelector('input[type=text]');
+  const submitBtn = form.querySelector('button');
+  textInput.focus();
+  function commit(){
+    const name = textInput.value.trim();
+    if(!name){ renderTagbar(); return; }
+    tags.push({id:'t'+Date.now(), name, color: colorInput.value});
+    saveTags(); renderTagbar(); renderCalendar(); renderCountdown();
+  }
+  submitBtn.addEventListener('click', commit);
+  textInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter') commit(); if(e.key==='Escape') renderTagbar(); });
+}
+
+/* ---------- Modal ---------- */
+async function openModal(day){
+  selectedDay = day;
+  const key = monthKey(viewDate);
+  const data = await loadMonth(key);
+  const dayData = data.days[day] || {notes:'', tag:null, checklist:[], dayType:null, leaveName:''};
+  selectedDayTag = dayData.tag || null;
+  selectedDayType = dayData.dayType || null;
+
+  const dateObj = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
+  document.getElementById('modalTitle').textContent = `${day} ${MONTH_NAMES[viewDate.getMonth()]}`;
+  document.getElementById('modalSub').textContent = `${DAY_NAMES[dateObj.getDay()]} · ${viewDate.getFullYear()}`;
+  document.getElementById('notesInput').value = dayData.notes || '';
+  document.getElementById('leaveNameInput').value = dayData.leaveName || '';
+  document.getElementById('leaveNameInput').style.display = selectedDayType==='leave' ? 'block' : 'none';
+
+  const holiday = officialHolidayFor(viewDate.getFullYear(), viewDate.getMonth(), day);
+  const chipWrap = document.getElementById('holidayChipWrap');
+  chipWrap.innerHTML = holiday ? `<div class="holiday-chip">🎉 ${escapeHtml(holiday.name)}${holiday.type==='restricted'?' · restricted':' · UP holiday'}</div>` : '';
+
+  renderDaytypeSelect();
+  renderTagSelect();
+  renderChecklist(dayData.checklist || []);
+  document.getElementById('overlay').classList.add('show');
+}
+
+function renderDaytypeSelect(){
+  const wrap = document.getElementById('daytypeSelect');
+  const hint = document.getElementById('daytypeHint');
+  wrap.innerHTML = '';
+  const y = viewDate.getFullYear(), m = viewDate.getMonth();
+  const dow = new Date(y, m, selectedDay).getDay();
+  const isWeekend = (dow===0 || dow===6);
+  const holiday = officialHolidayFor(y, m, selectedDay);
+  const isGazetted = holiday && holiday.type==='gazetted';
+
+  const noneOpt = document.createElement('div');
+  noneOpt.className = 'daytype-option none' + (selectedDayType===null ? ' selected' : '');
+  noneOpt.textContent = isWeekend ? 'None' : (isGazetted ? 'Default (Holiday)' : 'Default (Work from home)');
+  noneOpt.addEventListener('click', ()=>{ selectedDayType=null; document.getElementById('leaveNameInput').style.display='none'; renderDaytypeSelect(); });
+  wrap.appendChild(noneOpt);
+
+  DAYTYPES.forEach(dt=>{
+    const opt = document.createElement('div');
+    opt.className = 'daytype-option' + (selectedDayType===dt.id ? ' selected' : '');
+    opt.innerHTML = `<span class="dot" style="background:${dt.color}"></span>${escapeHtml(dt.label)}`;
+    opt.addEventListener('click', ()=>{
+      selectedDayType = dt.id;
+      document.getElementById('leaveNameInput').style.display = dt.id==='leave' ? 'block' : 'none';
+      renderDaytypeSelect();
+    });
+    wrap.appendChild(opt);
+  });
+
+  const activeDef = selectedDayType ? dayTypeById(selectedDayType) : null;
+  let defaultHint;
+  if(isWeekend) defaultHint = 'Weekends have no default — pick one if you worked.';
+  else if(isGazetted) defaultHint = 'National holidays default to excluded from working days. Pick Office or WFH if you worked anyway.';
+  else defaultHint = 'Weekdays default to Work from home — mark the ones you went to office.';
+  hint.textContent = activeDef ? activeDef.hint : defaultHint;
+}
+
+function renderTagSelect(){
+  const wrap = document.getElementById('tagSelect');
+  wrap.innerHTML = '';
+  const noneOpt = document.createElement('div');
+  noneOpt.className = 'tag-option none' + (selectedDayTag===null ? ' selected' : '');
+  noneOpt.textContent = 'No tag';
+  noneOpt.addEventListener('click', ()=>{ selectedDayTag=null; renderTagSelect(); });
+  wrap.appendChild(noneOpt);
+  tags.forEach(tag=>{
+    const opt = document.createElement('div');
+    opt.className = 'tag-option' + (selectedDayTag===tag.id ? ' selected' : '');
+    opt.innerHTML = `<span class="dot" style="background:${tag.color}"></span>${escapeHtml(tag.name)}`;
+    opt.addEventListener('click', ()=>{ selectedDayTag=tag.id; renderTagSelect(); });
+    wrap.appendChild(opt);
+  });
+}
+
+function renderChecklist(list){ workingChecklist = list.map(c=>({...c})); drawChecklist(); }
+function drawChecklist(){
+  const wrap = document.getElementById('checklist');
+  wrap.innerHTML = '';
+  workingChecklist.forEach(item=>{
+    const row = document.createElement('div');
+    row.className = 'check-item' + (item.done ? ' done':'');
+    row.innerHTML = `<input type="checkbox" ${item.done?'checked':''} /><span>${escapeHtml(item.text)}</span><span class="del">&times;</span>`;
+    row.querySelector('input').addEventListener('change', (e)=>{ item.done = e.target.checked; drawChecklist(); });
+    row.querySelector('.del').addEventListener('click', ()=>{ workingChecklist = workingChecklist.filter(c=>c.id!==item.id); drawChecklist(); });
+    wrap.appendChild(row);
+  });
+}
+
+document.getElementById('addCheckBtn').addEventListener('click', addCheckItem);
+document.getElementById('newCheckInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); addCheckItem(); } });
+function addCheckItem(){
+  const input = document.getElementById('newCheckInput');
+  const text = input.value.trim();
+  if(!text) return;
+  workingChecklist.push({id:'c'+Date.now()+Math.random().toString(16).slice(2), text, done:false});
+  input.value=''; drawChecklist();
+}
+
+document.getElementById('saveDayBtn').addEventListener('click', async ()=>{
+  const key = monthKey(viewDate);
+  const data = await loadMonth(key);
+  const notes = document.getElementById('notesInput').value.trim();
+  const leaveName = document.getElementById('leaveNameInput').value.trim();
+  const hasContent = notes || selectedDayTag || selectedDayType || workingChecklist.length>0;
+  if(hasContent){
+    data.days[selectedDay] = {
+      notes, tag: selectedDayTag, checklist: workingChecklist,
+      dayType: selectedDayType, leaveName: selectedDayType==='leave' ? (leaveName || 'Leave') : ''
+    };
+  } else delete data.days[selectedDay];
+  monthCache[key] = data;
+  await saveMonth(key);
+  closeModal(); renderCalendar(); renderCountdown();
+});
+
+document.getElementById('clearDayBtn').addEventListener('click', async ()=>{
+  if(!confirm('Clear all plans and checklist items for this day?')) return;
+  const key = monthKey(viewDate);
+  const data = await loadMonth(key);
+  delete data.days[selectedDay];
+  monthCache[key] = data;
+  await saveMonth(key);
+  closeModal(); renderCalendar(); renderCountdown();
+});
+
+function closeModal(){ document.getElementById('overlay').classList.remove('show'); }
+document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
+document.getElementById('overlay').addEventListener('click', (e)=>{ if(e.target.id==='overlay') closeModal(); });
+
+/* ---------- Quick-action settings ---------- */
+function renderQuickSettingsList(){
+  const wrap = document.getElementById('quickSettingsList');
+  wrap.innerHTML = '';
+  DAYTYPES.forEach(dt=>{
+    const row = document.createElement('div');
+    row.className = 'check-item';
+    row.innerHTML = `<input type="checkbox" id="qa-${dt.id}" ${quickActions.includes(dt.id)?'checked':''} /><span><span class="dot" style="background:${dt.color};display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;"></span>${escapeHtml(dt.label)}</span>`;
+    row.querySelector('input').addEventListener('change', (e)=>{
+      if(e.target.checked){ if(!quickActions.includes(dt.id)) quickActions.push(dt.id); }
+      else{ quickActions = quickActions.filter(id=>id!==dt.id); }
+      saveQuickActions();
+      renderCalendar();
+    });
+    wrap.appendChild(row);
+  });
+}
+function closeSettingsModal(){ document.getElementById('settingsOverlay').classList.remove('show'); }
+document.getElementById('settingsBtn').addEventListener('click', ()=>{
+  renderQuickSettingsList();
+  document.getElementById('settingsOverlay').classList.add('show');
+});
+document.getElementById('settingsCloseBtn').addEventListener('click', closeSettingsModal);
+document.getElementById('settingsOverlay').addEventListener('click', (e)=>{ if(e.target.id==='settingsOverlay') closeSettingsModal(); });
+
+document.addEventListener('keydown', (e)=>{
+  if(e.key==='Escape'){ closeModal(); closeSettingsModal(); }
+  const modalOpen = document.getElementById('overlay').classList.contains('show') || document.getElementById('settingsOverlay').classList.contains('show');
+  if(modalOpen) return;
+  if(e.key==='ArrowLeft'){ viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth()-1, 1); renderCalendar(); }
+  if(e.key==='ArrowRight'){ viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth()+1, 1); renderCalendar(); }
+});
+
+document.getElementById('prevMonth').addEventListener('click', ()=>{ viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth()-1, 1); renderCalendar(); });
+document.getElementById('nextMonth').addEventListener('click', ()=>{ viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth()+1, 1); renderCalendar(); });
+document.getElementById('gotoToday').addEventListener('click', ()=>{ viewDate = new Date(today.getFullYear(), today.getMonth(), 1); renderCalendar(); });
+
+(async function init(){
+  await loadTags();
+  renderTagbar();
+  await renderCalendar();
+  await renderCountdown();
+  updateSyncPill(true);
+  if(isCloudConfigured()) await pullFromCloud(false);
+  setInterval(()=>{ pullFromCloud(false); }, 20000);
+  await registerServiceWorker();
+  await updateNotifPill();
+})();
+</script>
+
+</body>
+</html>
