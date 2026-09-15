@@ -176,6 +176,34 @@ module.exports = async (req, res) => {
       }
     }
 
+    // ---------- Shared to-do reminders ----------
+    // One daily nudge per person (owner and everyone who joined their list)
+    // if that list has any open items — same fixed time as everything else.
+    const openTodos = await sbFetch('shared_todos?done=eq.false&select=owner_sync_id');
+    const openCountByOwner = {};
+    for (const row of openTodos) openCountByOwner[row.owner_sync_id] = (openCountByOwner[row.owner_sync_id] || 0) + 1;
+
+    for (const ownerCode of Object.keys(openCountByOwner)) {
+      const openCount = openCountByOwner[ownerCode];
+      const subscriberRows = await sbFetch(`shared_todo_subscribers?owner_sync_id=eq.${encodeURIComponent(ownerCode)}&select=subscriber_sync_id`);
+      const targetCodes = [ownerCode, ...subscriberRows.map((r) => r.subscriber_sync_id)];
+
+      for (const code of targetCodes) {
+        const subsForCode = bySync[code] || [];
+        for (const sub of subsForCode) {
+          if (sub.last_todo_reminder_date === todayDateStr) continue;
+          await sendAndTrack(sub, {
+            title: `📝 ${openCount} open to-do${openCount === 1 ? '' : 's'}`,
+            body: code === ownerCode
+              ? `You still have ${openCount} item${openCount === 1 ? '' : 's'} on your to-do list.`
+              : `The shared to-do list still has ${openCount} item${openCount === 1 ? '' : 's'} open.`,
+            tag: 'todo-reminder',
+            url: '/'
+          }, { last_todo_reminder_date: todayDateStr });
+        }
+      }
+    }
+
     res.status(200).json({ ok: true, syncsChecked: Object.keys(bySync).length, results });
   } catch (err) {
     res.status(500).json({ error: String((err && err.message) || err), results });

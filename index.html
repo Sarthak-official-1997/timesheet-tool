@@ -193,6 +193,12 @@
   .check-item.done span{color:var(--ink-soft); text-decoration:line-through;}
   .check-item .del{ color:var(--ink-soft); cursor:pointer; font-size:15px; padding:0 4px; }
   .check-item .del:hover{color:var(--rose);}
+  .todo-tabs{ display:flex; gap:6px; }
+  .todo-tab{ border:1px solid var(--line-strong); background:none; color:var(--ink-soft); font-size:12px; font-weight:700; padding:6px 14px; border-radius:16px; cursor:pointer; }
+  .todo-tab.active{ background:var(--ink); color:var(--paper-raised); border-color:var(--ink); }
+  .todo-list{ margin-top:4px; max-height:280px; overflow-y:auto; }
+  .todo-list .check-item:last-child{ border-bottom:none; }
+  .todo-empty{ font-size:12.5px; color:var(--ink-soft); padding:14px 0; text-align:center; }
   .add-check{ display:flex; gap:6px; margin-top:8px; }
   .add-check input{ flex:1; border:1px solid var(--line); border-radius:10px; padding:8px 10px; font-size:13px; font-family:'Plus Jakarta Sans',sans-serif; background:var(--paper); }
   .add-check button{ border:1px solid var(--line-strong); background:none; border-radius:10px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer; }
@@ -382,6 +388,7 @@
       <button class="pill-btn" id="gotoToday">Today</button>
       <div class="util-actions">
         <button class="pill-btn" id="analyticsBtn">📊 Analytics</button>
+        <button class="pill-btn" id="todosBtn">📝 To-dos</button>
         <button class="pill-btn" id="settingsBtn">⚙ Quick actions</button>
         <button class="pill-btn" id="syncBtn">Cloud sync</button>
         <button class="pill-btn" id="notifBtn">🔔 Notifications</button>
@@ -454,6 +461,7 @@
 <nav class="bottom-bar" id="bottomBar">
   <button type="button" class="bb-tab active" id="bbCalendar"><span class="bb-ic">&#128197;</span>Calendar</button>
   <button type="button" class="bb-tab" id="bbAnalytics"><span class="bb-ic">&#128202;</span>Analytics</button>
+  <button type="button" class="bb-tab" id="bbTodos"><span class="bb-ic">&#128221;</span>To-dos</button>
   <button type="button" class="bb-tab" id="bbAlerts"><span class="bb-ic">&#128276;</span>Alerts</button>
   <button type="button" class="bb-tab" id="bbMore"><span class="bb-ic">&#8942;</span>More</button>
 </nav>
@@ -557,6 +565,35 @@
       <button class="btn-outline" id="restoreSyncBtn" type="button">I have a Cloud sync code</button>
     </div>
     <button class="btn-text" id="restoreSkipBtn" type="button" style="margin-top:14px;">Start fresh instead</button>
+  </div>
+</div>
+
+<div class="overlay" id="todoOverlay">
+  <div class="modal">
+    <button class="modal-close" id="todoCloseBtn">&times;</button>
+    <h2>To-do list</h2>
+    <div class="todo-tabs" id="todoTabs">
+      <button type="button" class="todo-tab active" data-mode="mine">My list</button>
+      <button type="button" class="todo-tab" id="todoJoinedTab" data-mode="joined" hidden></button>
+    </div>
+    <div class="sub" id="todoStatusHint" style="margin-top:8px;"></div>
+    <div class="todo-list" id="todoItems"></div>
+    <div class="add-check">
+      <input type="text" id="todoNewInput" placeholder="Add a to-do…" maxlength="200">
+      <button type="button" id="todoAddBtn">Add</button>
+    </div>
+    <div class="modal-actions">
+      <div class="sub" style="margin:0;">Give this code to someone so they see and add to this same list.</div>
+      <button class="btn-outline" id="todoShareBtn" type="button">Share my list</button>
+    </div>
+    <div class="modal-actions">
+      <div class="sub" style="margin:0;" id="todoJoinHint">Have a code from someone else? Join their list.</div>
+      <button class="btn-outline" id="todoJoinBtn" type="button">Join a list</button>
+    </div>
+    <div class="modal-actions" id="todoRemindRow" hidden>
+      <div class="sub" style="margin:0;">They haven't checked off everything yet.</div>
+      <button class="btn-primary" id="todoRemindBtn" type="button">🔔 Remind them</button>
+    </div>
   </div>
 </div>
 
@@ -1067,6 +1104,143 @@ document.getElementById('restoreDriveBtn').addEventListener('click', async ()=>{
 });
 
 document.getElementById('settingsBtn').addEventListener('click', ()=>{ renderSnapshotList(); updateDriveUI(); });
+
+/* ---------- Shared to-do list ---------- */
+let todoListMode = 'mine';
+function getJoinedTodoCode(){ return localStorage.getItem('_joined_todo_code') || null; }
+
+function updateTodoTabs(){
+  const joined = getJoinedTodoCode();
+  const joinedTab = document.getElementById('todoJoinedTab');
+  joinedTab.hidden = !joined;
+  if(joined) joinedTab.textContent = 'Shared with me';
+  document.querySelectorAll('.todo-tab').forEach(b=>b.classList.toggle('active', b.dataset.mode===todoListMode));
+}
+
+async function fetchTodos(code){
+  try{
+    const r = await fetch(`/api/todos?code=${encodeURIComponent(code)}`);
+    if(!r.ok) return null;
+    const j = await r.json();
+    return j.items || [];
+  }catch(e){ return null; }
+}
+
+async function renderTodoModal(){
+  updateTodoTabs();
+  const code = todoListMode==='joined' ? getJoinedTodoCode() : getSyncId();
+  const hint = document.getElementById('todoStatusHint');
+  const list = document.getElementById('todoItems');
+  const remindRow = document.getElementById('todoRemindRow');
+
+  if(!code){
+    hint.textContent = '';
+    list.innerHTML = '<div class="todo-empty">Nothing here yet.</div>';
+    remindRow.hidden = true;
+    return;
+  }
+
+  hint.textContent = todoListMode==='mine'
+    ? 'Loading your list…'
+    : 'Loading the shared list…';
+  const items = await fetchTodos(code);
+  if(items===null){ hint.textContent = "Couldn't load the list — check your connection and try again."; list.innerHTML=''; remindRow.hidden = true; return; }
+
+  hint.textContent = todoListMode==='mine'
+    ? `Your code: ${getSyncId()}`
+    : `Owned by: ${code}`;
+
+  if(items.length===0){
+    list.innerHTML = '<div class="todo-empty">No items yet — add one below.</div>';
+  } else {
+    list.innerHTML = items.map(it=>`
+      <div class="check-item${it.done?' done':''}" data-id="${it.id}">
+        <input type="checkbox" ${it.done?'checked':''}>
+        <span>${escapeHtml(it.text)}</span>
+        <span class="del">&times;</span>
+      </div>`).join('');
+    list.querySelectorAll('.check-item').forEach(row=>{
+      const id = row.dataset.id;
+      row.querySelector('input[type=checkbox]').addEventListener('change', async (e)=>{
+        await fetch('/api/todos', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ code, id, done: e.target.checked }) });
+        renderTodoModal();
+      });
+      row.querySelector('.del').addEventListener('click', async ()=>{
+        await fetch(`/api/todos?code=${encodeURIComponent(code)}&id=${encodeURIComponent(id)}`, { method:'DELETE' });
+        renderTodoModal();
+      });
+    });
+  }
+
+  const openCount = items.filter(it=>!it.done).length;
+  remindRow.hidden = !(todoListMode==='joined' && openCount>0);
+}
+
+document.querySelectorAll('.todo-tab').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    if(btn.hidden) return;
+    todoListMode = btn.dataset.mode;
+    renderTodoModal();
+  });
+});
+
+document.getElementById('todoAddBtn').addEventListener('click', async ()=>{
+  const input = document.getElementById('todoNewInput');
+  const text = input.value.trim();
+  if(!text) return;
+  const code = todoListMode==='joined' ? getJoinedTodoCode() : getSyncId();
+  input.value = '';
+  await fetch('/api/todos', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ code, text }) });
+  renderTodoModal();
+});
+document.getElementById('todoNewInput').addEventListener('keydown', (e)=>{
+  if(e.key==='Enter') document.getElementById('todoAddBtn').click();
+});
+
+document.getElementById('todoShareBtn').addEventListener('click', async ()=>{
+  const code = getSyncId();
+  const copied = await copyToClipboard(code);
+  alert(`Your to-do list code${copied?' (copied to clipboard)':''}:\n\n${code}\n\nWhoever you give this to can open "To-dos" in the app, tap "Join a list", and paste it in — they'll see and can add to this same list, and get the same reminders.`);
+});
+
+document.getElementById('todoJoinBtn').addEventListener('click', async ()=>{
+  const entered = prompt("Paste the code someone shared with you:", getJoinedTodoCode() || '');
+  if(entered===null) return;
+  const ownerCode = entered.trim();
+  if(!ownerCode) return;
+  if(ownerCode === getSyncId()){ alert("That's your own code — get the other person's code instead."); return; }
+  try{
+    const r = await fetch('/api/todos-join', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ownerCode, subscriberCode: getSyncId() }) });
+    const j = await r.json();
+    if(!r.ok){ alert(j.error || 'Could not join that list.'); return; }
+    localStorage.setItem('_joined_todo_code', ownerCode);
+    todoListMode = 'joined';
+    if(!j.ownerHasApp){
+      alert("Joined — but heads up: that code doesn't have notifications set up on their end yet, so they won't get reminders until they open 🔔 Notifications in the app.");
+    }
+    renderTodoModal();
+  }catch(e){ alert('Could not reach the server — try again.'); }
+});
+
+document.getElementById('todoRemindBtn').addEventListener('click', async ()=>{
+  const targetCode = getJoinedTodoCode();
+  if(!targetCode) return;
+  try{
+    const r = await fetch('/api/todos-remind', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ targetCode }) });
+    const j = await r.json();
+    if(r.ok && j.sent>0) flashSaved('Reminder sent');
+    else alert(j.error || "Couldn't send a reminder — they may not have notifications set up.");
+  }catch(e){ alert('Could not reach the server — try again.'); }
+});
+
+function openTodoModal(){
+  document.getElementById('todoOverlay').classList.add('show');
+  renderTodoModal();
+}
+document.getElementById('todosBtn').addEventListener('click', openTodoModal);
+document.getElementById('bbTodos').addEventListener('click', openTodoModal);
+document.getElementById('todoCloseBtn').addEventListener('click', ()=>document.getElementById('todoOverlay').classList.remove('show'));
+document.getElementById('todoOverlay').addEventListener('click', (e)=>{ if(e.target.id==='todoOverlay') document.getElementById('todoOverlay').classList.remove('show'); });
 
 /* ---------- Push notifications ---------- */
 const VAPID_PUBLIC_KEY = 'BEqh5UEkvgKbRd6HwU8irO5t6ykzzjdy77aYjqq6Gj0jy1zweqdZuOwhn2dtIyba4DHM-BjBAJR2PpQO5XPxnQQ';
