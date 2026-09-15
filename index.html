@@ -771,11 +771,19 @@ async function pushToCloud(){
   if(!isCloudConfigured()) return;
   const c = cloudConfig();
   try{
-    await fetch(`${c.url}/rest/v1/planner_sync`, {
+    // on_conflict=sync_id is required for merge-duplicates to actually update
+    // the existing row for this device's code — without it, Postgres has no
+    // conflict target, so every push silently INSERTS a new row instead of
+    // updating, and pulls end up reading back an arbitrary old snapshot.
+    const r = await fetch(`${c.url}/rest/v1/planner_sync?on_conflict=sync_id`, {
       method:'POST',
       headers:{ 'Content-Type':'application/json', 'apikey': c.key, 'Authorization': `Bearer ${c.key}`, 'Prefer':'resolution=merge-duplicates' },
       body: JSON.stringify({ sync_id: getSyncId(), data: collectLocalData(), updated_at: new Date().toISOString() })
     });
+    // A failed request (missing table, bad RLS policy, wrong key, etc.) used
+    // to be swallowed silently here, showing "Cloud sync: on" regardless —
+    // that's exactly how the missing planner_sync table went unnoticed.
+    if(!r.ok){ throw new Error(`push failed: ${r.status}`); }
     updateSyncPill(true);
   }catch(e){ console.error('cloud push failed', e); updateSyncPill(false, true); }
 }
@@ -799,9 +807,12 @@ async function pullFromCloud(showFlash){
   if(!isCloudConfigured()) return;
   const c = cloudConfig();
   try{
-    const res = await fetch(`${c.url}/rest/v1/planner_sync?sync_id=eq.${encodeURIComponent(getSyncId())}&select=data,updated_at`, {
+    // order+limit so this always reads the newest row for this code, even if
+    // old duplicate rows exist from before the on_conflict fix below.
+    const res = await fetch(`${c.url}/rest/v1/planner_sync?sync_id=eq.${encodeURIComponent(getSyncId())}&select=data,updated_at&order=updated_at.desc&limit=1`, {
       headers:{ 'apikey': c.key, 'Authorization': `Bearer ${c.key}` }
     });
+    if(!res.ok){ throw new Error(`pull failed: ${res.status}`); }
     const rows = await res.json();
     if(rows && rows[0] && rows[0].data){
       const incomingCount = Object.keys(rows[0].data).length;

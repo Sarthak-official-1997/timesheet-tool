@@ -57,3 +57,35 @@ create table if not exists shared_todo_subscribers (
 );
 create index if not exists shared_todo_subscribers_owner_idx on shared_todo_subscribers (owner_sync_id);
 alter table shared_todo_subscribers enable row level security;
+
+-- ---------- Calendar Cloud Sync ----------
+-- This table apparently never actually got created in your project — every
+-- Cloud Sync save/pull has been silently failing (the app doesn't check
+-- whether the request succeeded, so "Cloud sync: on" showed regardless).
+-- One row per device-code, holding that device's whole exported data blob.
+create table if not exists planner_sync (
+  id uuid primary key default gen_random_uuid(),
+  sync_id text not null,
+  data jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+
+-- Required for the app's upsert (Prefer: resolution=merge-duplicates,
+-- on_conflict=sync_id) to update the existing row instead of inserting a
+-- new one every save.
+create unique index if not exists planner_sync_sync_id_idx on planner_sync (sync_id);
+
+-- Unlike push_subscriptions, this table IS read/written directly from the
+-- browser (that's how two devices share data via the same sync code), so it
+-- needs an RLS policy that actually lets the anon key through. Access
+-- control here relies on the sync code being unguessable, not on Postgres
+-- knowing who's who — same trust model the sync code already uses everywhere
+-- else in the app.
+alter table planner_sync enable row level security;
+drop policy if exists "anon full access via sync_id" on planner_sync;
+create policy "anon full access via sync_id" on planner_sync
+  for all
+  to anon
+  using (true)
+  with check (true);
