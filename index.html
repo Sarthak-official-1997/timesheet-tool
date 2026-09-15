@@ -42,6 +42,8 @@
   .brand{ font-family:'Fraunces',serif; font-optical-sizing:auto; font-weight:600; font-size:27px; letter-spacing:-0.01em; }
   .brand span{color:var(--accent-deep);}
   .month-nav{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .util-actions{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .view-toggle{ display:none; }
   .month-label{ font-family:'Fraunces',serif; font-size:20px; font-weight:500; min-width:190px; text-align:center; }
   .nav-btn{ background:var(--paper-raised); border:1px solid var(--line-strong); color:var(--ink); width:30px;height:30px; border-radius:50%; cursor:pointer; font-size:15px; line-height:1; display:flex;align-items:center;justify-content:center; }
   .nav-btn:hover{background:var(--accent-soft); border-color:var(--accent);}
@@ -196,15 +198,68 @@
   .save-indicator{ font-size:11px; font-weight:600; color:var(--sage); position:fixed; bottom:18px; right:18px; background:var(--paper-raised); border:1px solid var(--line); padding:7px 14px; border-radius:20px; opacity:0; transition:opacity .3s; }
   .save-indicator.show{opacity:1;}
 
+  /* ---------- Mobile bottom bar / FAB / week toggle / agenda ---------- */
+  .bottom-bar{ display:none; }
+  .fab{ display:none; }
+  .fab-sheet{ display:none; }
+
+  @media (max-width:640px){
+    .util-actions{ display:none; }
+    .view-toggle{ display:flex; gap:4px; background:var(--paper); border:1px solid var(--line-strong); border-radius:20px; padding:2px; }
+    .vt-btn{ border:none; background:none; font-size:11px; font-weight:700; color:var(--ink-soft); padding:5px 12px; border-radius:16px; cursor:pointer; }
+    .vt-btn.active{ background:var(--ink); color:var(--paper-raised); }
+
+    .bottom-bar{ display:flex; justify-content:space-around; position:fixed; left:0; right:0; bottom:0; z-index:150; background:var(--paper-raised); border-top:1px solid var(--line-strong); padding:8px 4px calc(8px + env(safe-area-inset-bottom, 0px)); }
+    .bb-tab{ display:flex; flex-direction:column; align-items:center; gap:2px; border:none; background:none; font-size:10px; font-weight:700; color:var(--ink-soft); padding:4px 10px; cursor:pointer; font-family:'Plus Jakarta Sans',sans-serif; }
+    .bb-tab .bb-ic{ font-size:16px; line-height:1; }
+    .bb-tab.active{ color:var(--accent-deep); }
+    .bb-tab.on #bbSyncDot, .bb-tab #bbSyncDot.on{ color:var(--sage); }
+    #bbSyncDot{ color:var(--line-strong); }
+    #bbSyncDot.on{ color:var(--sage); }
+    #bbSyncDot.err{ color:var(--rose); }
+
+    .fab{ display:flex; align-items:center; justify-content:center; position:fixed; right:16px; bottom:calc(78px + env(safe-area-inset-bottom, 0px)); width:52px; height:52px; border-radius:50%; background:var(--accent); color:#fff; border:none; font-size:26px; font-weight:600; line-height:1; cursor:pointer; box-shadow:0 8px 20px rgba(216,110,80,0.45); z-index:151; }
+    .fab-sheet{ position:fixed; right:16px; left:16px; bottom:calc(138px + env(safe-area-inset-bottom, 0px)); background:var(--paper-raised); border:1px solid var(--line-strong); border-radius:16px; padding:12px 14px; box-shadow:0 10px 26px rgba(59,42,74,0.22); z-index:151; }
+    .fab-sheet:not([hidden]){ display:block; }
+    .fab-sheet .fs-label{ font-size:11px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px; }
+    .fab-sheet .fs-chips{ display:flex; gap:7px; flex-wrap:wrap; }
+    .fs-chip{ border:none; color:#fff; font-size:12.5px; font-weight:700; padding:8px 14px; border-radius:16px; cursor:pointer; }
+
+    .grid.agenda-mode{ display:flex; flex-direction:column; gap:6px; }
+    .weekdays.agenda-hide{ display:none; }
+    .agenda-row{ display:flex; align-items:center; gap:10px; background:var(--paper-raised); border:1px solid var(--line); border-radius:12px; padding:9px 10px; }
+    .agenda-row.is-today{ border-color:var(--lavender); background:var(--lavender-soft); }
+    .agenda-row.is-holiday{ border-left:3px solid var(--rose); }
+    .agenda-row.is-restricted{ border-left:3px dashed var(--line-strong); }
+    .agenda-date{ font-family:'Fraunces',serif; font-weight:600; font-size:18px; width:26px; text-align:center; flex-shrink:0; }
+    .agenda-info{ flex:1; min-width:0; cursor:pointer; }
+    .agenda-dow{ font-size:10px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:2px; }
+    .agenda-status{ font-size:12.5px; font-weight:600; display:block; }
+    .agenda-status.office{color:var(--accent-deep);}
+    .agenda-status.wfh{color:var(--sky-deep);}
+    .agenda-status.travel{color:var(--lavender-deep);}
+    .agenda-status.home{color:var(--sage-deep);}
+    .agenda-status.leave, .agenda-status.holiday{color:var(--rose);}
+    .agenda-status.off{color:var(--ink-soft); font-weight:500;}
+    .agenda-tag{ font-size:10.5px; font-weight:600; }
+    .agenda-qa-row{ display:flex; gap:4px; flex-shrink:0; }
+    .agenda-qa{ width:24px; height:24px; border-radius:7px; border:none; color:#fff; font-size:10px; font-weight:800; cursor:pointer; opacity:0.55; }
+    .agenda-qa.active{ opacity:1; outline:2px solid var(--ink); outline-offset:1px; }
+  }
+
   .update-banner{ position:fixed; left:50%; bottom:calc(18px + env(safe-area-inset-bottom, 0px)); transform:translateX(-50%) translateY(80px); z-index:200; display:flex; align-items:center; gap:9px; background:var(--ink); color:var(--paper-raised); border:none; border-radius:24px; padding:11px 20px; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 8px 24px rgba(59,42,74,0.35); opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease; }
   .update-banner.show{opacity:1; pointer-events:auto; transform:translateX(-50%) translateY(0);}
   .update-banner:disabled{cursor:default; opacity:0.85;}
   .update-banner .spinner{width:14px; height:14px; border-radius:50%; border:2px solid rgba(255,255,255,0.35); border-top-color:#fff; animation:update-spin .7s linear infinite; flex-shrink:0;}
   .update-banner .icon{font-size:14px; line-height:1;}
   @keyframes update-spin{ to{ transform:rotate(360deg); } }
+  @media (max-width:640px){
+    .update-banner{ bottom:calc(88px + env(safe-area-inset-bottom, 0px)); }
+    .save-indicator{ bottom:calc(88px + env(safe-area-inset-bottom, 0px)); right:12px; }
+  }
 
   @media (max-width:640px){
-    .app{padding:16px 6px 70px;}
+    .app{padding:16px 6px calc(78px + env(safe-area-inset-bottom, 0px));}
     .grid{grid-auto-rows:58px; gap:3px;}
     .weekdays div{padding:0 2px 6px; font-size:10px;}
     .cell{padding:3px 3px 2px; border-radius:8px;}
@@ -236,10 +291,16 @@
       <div class="month-label" id="monthLabel"></div>
       <button class="nav-btn" id="nextMonth">&rarr;</button>
       <button class="pill-btn" id="gotoToday">Today</button>
-      <button class="pill-btn" id="settingsBtn">⚙ Quick actions</button>
-      <button class="pill-btn" id="syncBtn">Cloud sync</button>
-      <button class="pill-btn" id="notifBtn">🔔 Notifications</button>
-      <button class="pill-btn" id="installBtn" hidden>⬇ Install app</button>
+      <div class="view-toggle" id="viewToggle">
+        <button type="button" class="vt-btn" data-mode="week">Week</button>
+        <button type="button" class="vt-btn" data-mode="month">Month</button>
+      </div>
+      <div class="util-actions">
+        <button class="pill-btn" id="settingsBtn">⚙ Quick actions</button>
+        <button class="pill-btn" id="syncBtn">Cloud sync</button>
+        <button class="pill-btn" id="notifBtn">🔔 Notifications</button>
+        <button class="pill-btn" id="installBtn" hidden>⬇ Install app</button>
+      </div>
     </div>
   </div>
 
@@ -256,11 +317,21 @@
     <span class="swatch"><span class="bar" style="background:#9a7fc4"></span>Your custom leave/holiday</span>
   </div>
 
-  <div class="weekdays">
+  <div class="weekdays" id="weekdays">
     <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div>
   </div>
   <div class="grid" id="grid"></div>
 </div>
+
+<button type="button" class="fab" id="fabBtn" aria-label="Log today">+</button>
+<div class="fab-sheet" id="fabSheet" hidden></div>
+
+<nav class="bottom-bar" id="bottomBar">
+  <button type="button" class="bb-tab active" id="bbCalendar"><span class="bb-ic">&#128197;</span>Calendar</button>
+  <button type="button" class="bb-tab" id="bbSync"><span class="bb-ic" id="bbSyncDot">&#9679;</span>Sync</button>
+  <button type="button" class="bb-tab" id="bbAlerts"><span class="bb-ic">&#128276;</span>Alerts</button>
+  <button type="button" class="bb-tab" id="bbMore"><span class="bb-ic">&#8942;</span>More</button>
+</nav>
 
 <div class="tooltip" id="tooltip"></div>
 
@@ -384,6 +455,8 @@ let quickActions = loadQuickActions();
 
 let today = new Date();
 let viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
+let calMode = window.matchMedia('(max-width:640px)').matches ? 'week' : 'month';
+let weekAnchor = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 let tags = [];
 let monthCache = {};
 let activeFilters = new Set();
@@ -488,9 +561,11 @@ async function pullFromCloud(showFlash){
 }
 function updateSyncPill(ok, errored){
   const btn = document.getElementById('syncBtn');
+  const dot = document.getElementById('bbSyncDot');
+  dot.classList.remove('on','err');
   if(!isCloudConfigured()){ btn.textContent = 'Cloud sync: off'; btn.className = 'pill-btn'; return; }
-  if(errored){ btn.textContent = 'Cloud sync: error'; btn.className='pill-btn'; return; }
-  btn.textContent = 'Cloud sync: on'; btn.className = 'pill-btn synced';
+  if(errored){ btn.textContent = 'Cloud sync: error'; btn.className='pill-btn'; dot.classList.add('err'); return; }
+  btn.textContent = 'Cloud sync: on'; btn.className = 'pill-btn synced'; dot.classList.add('on');
 }
 document.getElementById('syncBtn').addEventListener('click', ()=>{
   const c = cloudConfig();
@@ -637,8 +712,8 @@ async function renderCountdown(){
 }
 
 /* ---------- Working-day / office / wfh / travel / home stats ---------- */
-function computeMonthStats(data){
-  const y = viewDate.getFullYear(), m = viewDate.getMonth();
+function computeMonthStats(data, y, m){
+  if(y===undefined){ y = viewDate.getFullYear(); m = viewDate.getMonth(); }
   const daysInMonth = new Date(y, m+1, 0).getDate();
   let weekdayCount=0, weekendCount=0, officialHolOnWeekday=0, leaveOnWeekday=0;
   let officeDays=0, wfhDays=0, travelDays=0, homeDays=0, leaveDays=0;
@@ -670,8 +745,8 @@ function computeMonthStats(data){
   const officePercent = workingDays>0 ? Math.round((officeDays/workingDays)*100) : 0;
   return { weekdayCount, weekendCount, workingDays, officeDays, wfhDays, travelDays, homeDays, leaveDays, officePercent };
 }
-function renderStats(data){
-  const s = computeMonthStats(data);
+function renderStats(data, y, m){
+  const s = computeMonthStats(data, y, m);
   const el = document.getElementById('statsRow');
   const pctClass = s.officePercent >= 60 ? 'ok' : 'low';
   el.innerHTML = `
@@ -691,6 +766,10 @@ function renderStats(data){
 
 /* ---------- Calendar rendering ---------- */
 async function renderCalendar(){
+  document.getElementById('weekdays').classList.toggle('agenda-hide', calMode==='week');
+  document.getElementById('grid').classList.toggle('agenda-mode', calMode==='week');
+  if(calMode==='week') return renderWeekAgenda();
+
   document.getElementById('monthLabel').textContent = `${MONTH_NAMES[viewDate.getMonth()]} ${viewDate.getFullYear()}`;
   const key = monthKey(viewDate);
   const data = await loadMonth(key);
@@ -783,9 +862,83 @@ async function renderCalendar(){
   }
 }
 
-async function quickSetDayType(e, day, typeId){
-  e.stopPropagation();
-  const key = monthKey(viewDate);
+/* ---------- Week agenda (mobile default) ---------- */
+const WEEKDAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+function getWeekDates(anchor){
+  const dow = (anchor.getDay() + 6) % 7;
+  const monday = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() - dow);
+  const dates = [];
+  for(let i=0;i<7;i++){ const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate()+i); dates.push(d); }
+  return dates;
+}
+async function renderWeekAgenda(){
+  const dates = getWeekDates(weekAnchor);
+  const first = dates[0], last = dates[6];
+  document.getElementById('monthLabel').textContent = first.getMonth()===last.getMonth()
+    ? `${first.getDate()}–${last.getDate()} ${MONTH_NAMES[first.getMonth()]} ${first.getFullYear()}`
+    : `${first.getDate()} ${MONTH_NAMES[first.getMonth()]} – ${last.getDate()} ${MONTH_NAMES[last.getMonth()]}`;
+
+  const statsData = await loadMonth(monthKey(weekAnchor));
+  renderStats(statsData, weekAnchor.getFullYear(), weekAnchor.getMonth());
+
+  const neededKeys = new Set(dates.map(d=>monthKey(d)));
+  const dataByKey = {};
+  for(const k of neededKeys) dataByKey[k] = await loadMonth(k);
+
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  dates.forEach((d, idx)=>{
+    const y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
+    const data = dataByKey[monthKey(d)];
+    const dayData = data.days[day];
+    const isToday = y===today.getFullYear() && m===today.getMonth() && day===today.getDate();
+    const holiday = officialHolidayFor(y, m, day);
+    const explicitType = dayData && dayData.dayType;
+    const eff = effectiveDayType(y, m, day, dayData, holiday);
+    let tag = null;
+    if(dayData && dayData.tag) tag = tagById(dayData.tag);
+
+    const row = document.createElement('div');
+    row.className = 'agenda-row' + (isToday ? ' is-today' : '');
+    if(holiday) row.classList.add(holiday.type==='gazetted' ? 'is-holiday' : 'is-restricted');
+
+    let statusHtml;
+    if(holiday) statusHtml = `<span class="agenda-status holiday">🎉 ${escapeHtml(holiday.name)}</span>`;
+    else if(explicitType==='leave') statusHtml = `<span class="agenda-status leave">🏖 ${escapeHtml(dayData.leaveName || 'Leave')}</span>`;
+    else if(eff) statusHtml = `<span class="agenda-status ${eff}">${dayTypeById(eff).label}</span>`;
+    else statusHtml = `<span class="agenda-status off">Weekend</span>`;
+
+    const qaHtml = quickActions.map(id=>{
+      const dt = dayTypeById(id);
+      if(!dt) return '';
+      const isActive = explicitType===id;
+      return `<button type="button" class="agenda-qa${isActive?' active':''}" data-daytype="${id}" data-y="${y}" data-m="${m}" data-day="${day}" title="${escapeHtml(dt.label)}" style="background:${dt.color}">${DAYTYPE_LETTER[id]}</button>`;
+    }).join('');
+
+    row.innerHTML = `
+      <div class="agenda-date">${day}</div>
+      <div class="agenda-info">
+        <div class="agenda-dow">${WEEKDAY_NAMES[idx]}${isToday ? ' · today' : ''}</div>
+        ${statusHtml}
+        ${tag ? `<span class="agenda-tag" style="color:${tag.color}">${escapeHtml(tag.name)}</span>` : ''}
+      </div>
+      <div class="agenda-qa-row">${qaHtml}</div>
+    `;
+    row.querySelector('.agenda-info').addEventListener('click', ()=>{ viewDate = new Date(y, m, 1); openModal(day); });
+    row.querySelectorAll('.agenda-qa').forEach(btn=>{
+      btn.addEventListener('click', async (e)=>{
+        e.stopPropagation();
+        const by = +btn.dataset.y, bm = +btn.dataset.m, bd = +btn.dataset.day, typeId = btn.dataset.daytype;
+        await setDayType(monthKey(new Date(by, bm, 1)), bd, typeId);
+        renderCalendar(); renderCountdown();
+      });
+    });
+    grid.appendChild(row);
+  });
+}
+
+async function setDayType(key, day, typeId){
   const data = await loadMonth(key);
   const existing = data.days[day] || {notes:'', tag:null, checklist:[], dayType:null, leaveName:''};
   if(existing.dayType === typeId){
@@ -799,6 +952,10 @@ async function quickSetDayType(e, day, typeId){
   if(hasContent) data.days[day] = existing; else delete data.days[day];
   monthCache[key] = data;
   await saveMonth(key);
+}
+async function quickSetDayType(e, day, typeId){
+  e.stopPropagation();
+  await setDayType(monthKey(viewDate), day, typeId);
   renderCalendar(); renderCountdown();
 }
 
@@ -1048,12 +1205,40 @@ document.getElementById('settingsBtn').addEventListener('click', ()=>{
 document.getElementById('settingsCloseBtn').addEventListener('click', closeSettingsModal);
 document.getElementById('settingsOverlay').addEventListener('click', (e)=>{ if(e.target.id==='settingsOverlay') closeSettingsModal(); });
 
+function stepBack(){
+  if(calMode==='week') weekAnchor = new Date(weekAnchor.getFullYear(), weekAnchor.getMonth(), weekAnchor.getDate()-7);
+  else viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth()-1, 1);
+  renderCalendar(); renderCountdown();
+}
+function stepForward(){
+  if(calMode==='week') weekAnchor = new Date(weekAnchor.getFullYear(), weekAnchor.getMonth(), weekAnchor.getDate()+7);
+  else viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth()+1, 1);
+  renderCalendar(); renderCountdown();
+}
+function stepToday(){
+  weekAnchor = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
+  renderCalendar(); renderCountdown();
+}
+function setCalMode(mode){
+  if(calMode===mode) return;
+  calMode = mode;
+  document.querySelectorAll('.vt-btn').forEach(b=>b.classList.toggle('active', b.dataset.mode===mode));
+  if(mode==='week') weekAnchor = new Date(viewDate.getFullYear(), viewDate.getMonth(), Math.min(today.getDate(), new Date(viewDate.getFullYear(), viewDate.getMonth()+1, 0).getDate()));
+  else viewDate = new Date(weekAnchor.getFullYear(), weekAnchor.getMonth(), 1);
+  renderCalendar(); renderCountdown();
+}
+document.querySelectorAll('.vt-btn').forEach(btn=>{
+  btn.classList.toggle('active', btn.dataset.mode===calMode);
+  btn.addEventListener('click', ()=>setCalMode(btn.dataset.mode));
+});
+
 document.addEventListener('keydown', (e)=>{
   if(e.key==='Escape'){ closeModal(); closeSettingsModal(); }
   const modalOpen = document.getElementById('overlay').classList.contains('show') || document.getElementById('settingsOverlay').classList.contains('show');
   if(modalOpen) return;
-  if(e.key==='ArrowLeft'){ viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth()-1, 1); renderCalendar(); }
-  if(e.key==='ArrowRight'){ viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth()+1, 1); renderCalendar(); }
+  if(e.key==='ArrowLeft') stepBack();
+  if(e.key==='ArrowRight') stepForward();
 });
 
 document.addEventListener('click', (e)=>{
@@ -1066,9 +1251,42 @@ window.addEventListener('scroll', ()=>{
   document.querySelectorAll('.cell.touch-active').forEach(c=>c.classList.remove('touch-active'));
 }, {passive:true});
 
-document.getElementById('prevMonth').addEventListener('click', ()=>{ viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth()-1, 1); renderCalendar(); });
-document.getElementById('nextMonth').addEventListener('click', ()=>{ viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth()+1, 1); renderCalendar(); });
-document.getElementById('gotoToday').addEventListener('click', ()=>{ viewDate = new Date(today.getFullYear(), today.getMonth(), 1); renderCalendar(); });
+document.getElementById('prevMonth').addEventListener('click', stepBack);
+document.getElementById('nextMonth').addEventListener('click', stepForward);
+document.getElementById('gotoToday').addEventListener('click', stepToday);
+
+/* ---------- Mobile bottom bar ---------- */
+document.getElementById('bbSync').addEventListener('click', ()=>document.getElementById('syncBtn').click());
+document.getElementById('bbAlerts').addEventListener('click', ()=>document.getElementById('notifBtn').click());
+document.getElementById('bbMore').addEventListener('click', ()=>document.getElementById('settingsBtn').click());
+document.getElementById('bbCalendar').addEventListener('click', ()=>window.scrollTo({top:0, behavior:'smooth'}));
+
+/* ---------- Quick-log FAB (logs today's day type in one tap) ---------- */
+const fabBtn = document.getElementById('fabBtn');
+const fabSheet = document.getElementById('fabSheet');
+function renderFabSheet(){
+  const items = (quickActions.length ? quickActions : DEFAULT_QUICK_ACTIONS).map(id=>{
+    const dt = dayTypeById(id);
+    if(!dt) return '';
+    return `<button type="button" class="fs-chip" data-daytype="${id}" style="background:${dt.color}">${escapeHtml(dt.label)}</button>`;
+  }).join('');
+  fabSheet.innerHTML = `<div class="fs-label">Log today · ${today.getDate()} ${MONTH_NAMES[today.getMonth()]}</div><div class="fs-chips">${items}</div>`;
+  fabSheet.querySelectorAll('.fs-chip').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      await setDayType(monthKey(new Date(today.getFullYear(), today.getMonth(), 1)), today.getDate(), btn.dataset.daytype);
+      fabSheet.hidden = true;
+      renderCalendar(); renderCountdown();
+    });
+  });
+}
+fabBtn.addEventListener('click', ()=>{
+  if(!fabSheet.hidden){ fabSheet.hidden = true; return; }
+  renderFabSheet();
+  fabSheet.hidden = false;
+});
+document.addEventListener('click', (e)=>{
+  if(!fabSheet.hidden && !e.target.closest('.fab-sheet') && !e.target.closest('#fabBtn')) fabSheet.hidden = true;
+});
 
 /* ---------- Install prompt (Android/Chrome + iOS Safari) ---------- */
 let deferredInstallPrompt = null;
