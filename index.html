@@ -158,7 +158,7 @@
   .tooltip li{margin-bottom:2px;}
   .tooltip li.done{opacity:0.55; text-decoration:line-through;}
 
-  .overlay{ position:fixed; inset:0; background:rgba(59,42,74,0.45); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px; opacity:0; visibility:hidden; pointer-events:none; transition:opacity .18s ease; }
+  .overlay{ position:fixed; inset:0; background:rgba(59,42,74,0.45); display:flex; align-items:center; justify-content:center; z-index:300; padding:20px; opacity:0; visibility:hidden; pointer-events:none; transition:opacity .18s ease; }
   .overlay.show{opacity:1; visibility:visible; pointer-events:auto;}
   .modal{ background:var(--paper-raised); width:100%; max-width:480px; max-height:90vh; overflow-y:auto; border-radius:18px; padding:26px; border:1px solid var(--line-strong); position:relative; transform:scale(0.95) translateY(6px); transition:transform .18s ease; }
   .overlay.show .modal{transform:scale(1) translateY(0);}
@@ -202,12 +202,28 @@
   .bottom-bar{ display:none; }
   .fab{ display:none; }
   .fab-sheet{ display:none; }
+  .sticky-strip{ display:none; }
 
   @media (max-width:640px){
     .util-actions{ display:none; }
-    .view-toggle{ display:flex; gap:4px; background:var(--paper); border:1px solid var(--line-strong); border-radius:20px; padding:2px; }
+
+    .sticky-strip{
+      display:flex; align-items:center; gap:10px;
+      position:sticky; top:env(safe-area-inset-top, 0px); z-index:90;
+      background:var(--paper); padding:8px 0; margin:0 -6px; padding-inline:6px;
+      border-bottom:1px solid transparent; transition:box-shadow .15s ease, border-color .15s ease;
+    }
+    .sticky-strip.stuck{ box-shadow:0 6px 14px rgba(59,42,74,0.1); border-bottom-color:var(--line-strong); }
+    .view-toggle{ display:flex; gap:4px; background:var(--paper-raised); border:1px solid var(--line-strong); border-radius:20px; padding:2px; flex-shrink:0; }
     .vt-btn{ border:none; background:none; font-size:11px; font-weight:700; color:var(--ink-soft); padding:5px 12px; border-radius:16px; cursor:pointer; }
     .vt-btn.active{ background:var(--ink); color:var(--paper-raised); }
+    #stickyPercentWrap{ flex:1; min-width:0; }
+    #stickyPercentWrap .stat-card.percent{ padding:6px 12px; display:flex; align-items:center; gap:8px; }
+    #stickyPercentWrap .stat-num{ font-size:15px; flex-shrink:0; }
+    #stickyPercentWrap .stat-label{ display:none; }
+    #stickyPercentWrap .stat-sub{ display:none; }
+    #stickyPercentWrap .pct-bar-track{ flex:1; margin:0; }
+    .stats-row .stat-card.percent{ display:none; }
 
     .bottom-bar{ display:flex; justify-content:space-around; position:fixed; left:0; right:0; bottom:0; z-index:150; background:var(--paper-raised); border-top:1px solid var(--line-strong); padding:8px 4px calc(8px + env(safe-area-inset-bottom, 0px)); }
     .bb-tab{ display:flex; flex-direction:column; align-items:center; gap:2px; border:none; background:none; font-size:10px; font-weight:700; color:var(--ink-soft); padding:4px 10px; cursor:pointer; font-family:'Plus Jakarta Sans',sans-serif; }
@@ -259,7 +275,7 @@
   }
 
   @media (max-width:640px){
-    .app{padding:16px 6px calc(78px + env(safe-area-inset-bottom, 0px));}
+    .app{padding:16px 6px calc(150px + env(safe-area-inset-bottom, 0px));}
     .grid{grid-auto-rows:58px; gap:3px;}
     .weekdays div{padding:0 2px 6px; font-size:10px;}
     .cell{padding:3px 3px 2px; border-radius:8px;}
@@ -291,10 +307,6 @@
       <div class="month-label" id="monthLabel"></div>
       <button class="nav-btn" id="nextMonth">&rarr;</button>
       <button class="pill-btn" id="gotoToday">Today</button>
-      <div class="view-toggle" id="viewToggle">
-        <button type="button" class="vt-btn" data-mode="week">Week</button>
-        <button type="button" class="vt-btn" data-mode="month">Month</button>
-      </div>
       <div class="util-actions">
         <button class="pill-btn" id="settingsBtn">⚙ Quick actions</button>
         <button class="pill-btn" id="syncBtn">Cloud sync</button>
@@ -302,6 +314,15 @@
         <button class="pill-btn" id="installBtn" hidden>⬇ Install app</button>
       </div>
     </div>
+  </div>
+
+  <div id="stickyStripSentinel"></div>
+  <div class="sticky-strip" id="stickyStrip">
+    <div class="view-toggle" id="viewToggle">
+      <button type="button" class="vt-btn" data-mode="week">Week</button>
+      <button type="button" class="vt-btn" data-mode="month">Month</button>
+    </div>
+    <div id="stickyPercentWrap"></div>
   </div>
 
   <div class="countdown" id="countdown"></div>
@@ -569,6 +590,9 @@ function updateSyncPill(ok, errored){
 }
 document.getElementById('syncBtn').addEventListener('click', ()=>{
   const c = cloudConfig();
+  if(isCloudConfigured()){
+    if(!confirm('Cloud sync is already on.\n\nSync code: ' + getSyncId() + '\n\nChange the Supabase URL/key or sync code?')) return;
+  }
   const url = prompt('Supabase Project URL (from your free project settings):', c.url || 'https://xxxx.supabase.co');
   if(url===null) return;
   const key = prompt('Supabase anon public API key:', c.key || '');
@@ -747,21 +771,23 @@ function computeMonthStats(data, y, m){
 }
 function renderStats(data, y, m){
   const s = computeMonthStats(data, y, m);
-  const el = document.getElementById('statsRow');
   const pctClass = s.officePercent >= 60 ? 'ok' : 'low';
-  el.innerHTML = `
-    <div class="stat-card working"><div class="stat-num">${s.workingDays}</div><div class="stat-label">Working days</div><div class="stat-sub">excl. Sat/Sun &amp; holidays</div></div>
+  const percentCardHtml = `
     <div class="stat-card percent ${pctClass}">
       <div class="stat-num">${s.officePercent}%</div>
       <div class="stat-label">In-office<span class="info-dot" title="Office days ÷ Working days. Working days = weekdays − official holidays − leave taken. WFH and travel days count as worked, but not toward this %.">i</span></div>
       <div class="pct-bar-track"><div class="pct-bar-fill ${pctClass}" style="width:${Math.min(s.officePercent,100)}%"></div><div class="pct-bar-target"></div></div>
       <div class="stat-sub">${s.officeDays}/${s.workingDays} days · target 60%</div>
-    </div>
+    </div>`;
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-card working"><div class="stat-num">${s.workingDays}</div><div class="stat-label">Working days</div><div class="stat-sub">excl. Sat/Sun &amp; holidays</div></div>
+    ${percentCardHtml}
     <div class="stat-card office"><div class="stat-num">${s.officeDays}</div><div class="stat-label">Office days</div></div>
     <div class="stat-card wfh"><div class="stat-num">${s.wfhDays}</div><div class="stat-label">WFH days</div></div>
     <div class="stat-card travel"><div class="stat-num">${s.travelDays}</div><div class="stat-label">Travel days</div></div>
     <div class="stat-card home"><div class="stat-num">${s.homeDays}</div><div class="stat-label">Home / off</div></div>
   `;
+  document.getElementById('stickyPercentWrap').innerHTML = percentCardHtml;
 }
 
 /* ---------- Calendar rendering ---------- */
@@ -1048,6 +1074,8 @@ function showTagForm(bar, addBtn){
 async function openModal(day){
   hideTooltip();
   document.querySelectorAll('.cell.touch-active').forEach(c=>c.classList.remove('touch-active'));
+  const fs = document.getElementById('fabSheet');
+  if(fs) fs.hidden = true;
   selectedDay = day;
   const key = monthKey(viewDate);
   const data = await loadMonth(key);
@@ -1233,6 +1261,14 @@ document.querySelectorAll('.vt-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>setCalMode(btn.dataset.mode));
 });
 
+if('IntersectionObserver' in window){
+  const stickyStrip = document.getElementById('stickyStrip');
+  const sentinel = document.getElementById('stickyStripSentinel');
+  new IntersectionObserver(([entry])=>{
+    stickyStrip.classList.toggle('stuck', !entry.isIntersecting);
+  }, {threshold:0}).observe(sentinel);
+}
+
 document.addEventListener('keydown', (e)=>{
   if(e.key==='Escape'){ closeModal(); closeSettingsModal(); }
   const modalOpen = document.getElementById('overlay').classList.contains('show') || document.getElementById('settingsOverlay').classList.contains('show');
@@ -1249,6 +1285,8 @@ document.addEventListener('click', (e)=>{
 window.addEventListener('scroll', ()=>{
   hideTooltip();
   document.querySelectorAll('.cell.touch-active').forEach(c=>c.classList.remove('touch-active'));
+  const fs = document.getElementById('fabSheet');
+  if(fs && !fs.hidden) fs.hidden = true;
 }, {passive:true});
 
 document.getElementById('prevMonth').addEventListener('click', stepBack);
