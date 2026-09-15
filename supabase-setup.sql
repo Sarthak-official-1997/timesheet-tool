@@ -16,6 +16,11 @@ create table if not exists push_subscriptions (
 
 create index if not exists push_subscriptions_sync_id_idx on push_subscriptions (sync_id);
 
+-- Added for the Sunday weekly catch-up notification — dedupes per week
+-- (stores that week's Monday date, e.g. '2026-09-14'). Safe to re-run this
+-- whole file on an existing table: the column is only added if missing.
+alter table push_subscriptions add column if not exists last_weekly_catchup_key text;
+
 -- Locked down: no policies are added, so the anon/browser key gets zero
 -- access to this table. Only the Vercel serverless functions can read or
 -- write it, using the Supabase *service role* key (which always bypasses

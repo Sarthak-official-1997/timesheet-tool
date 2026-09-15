@@ -1,7 +1,14 @@
 'use strict';
 
 const webpush = require('web-push');
-const { officialHolidayFor, computeMonthStats, monthKey, istNow, findNextTrip } = require('../lib/planner-logic');
+const { officialHolidayFor, computeMonthStats, monthKey, istNow, findNextTrip, hasLoggedDay, computeStreak, getPastWeekGaps } = require('../lib/planner-logic');
+
+const DOW_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAILY_LOG_ACTIONS = [
+  { action: 'office', title: 'Office' },
+  { action: 'wfh', title: 'WFH' },
+  { action: 'home', title: 'Home' }
+];
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -92,6 +99,7 @@ module.exports = async (req, res) => {
     const y = today.getUTCFullYear(), m = today.getUTCMonth(), d = today.getUTCDate();
     const todayDateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const curMonthKey = monthKey(y, m);
+    const isSunday = today.getUTCDay() === 0;
 
     for (const syncId of Object.keys(bySync)) {
       const subsForSync = bySync[syncId];
@@ -101,7 +109,17 @@ module.exports = async (req, res) => {
       const stats = computeMonthStats(y, m, monthData);
       const holiday = officialHolidayFor(y, m, d);
       const dd = monthData.days ? monthData.days[d] : null;
-      const hasLoggedToday = !!(dd && (dd.dayType || (dd.notes && dd.notes.trim() !== '') || dd.tag));
+      const hasLoggedToday = hasLoggedDay(dd);
+      const streak = !hasLoggedToday ? computeStreak(data, today) : 0;
+
+      let weekGaps = [];
+      let weekGapsKey = null;
+      if (isSunday) {
+        weekGaps = getPastWeekGaps(data, today);
+        if (weekGaps.length > 0) {
+          weekGapsKey = new Date(Date.UTC(y, m, d) - 6 * 86400000).toISOString().slice(0, 10);
+        }
+      }
 
       const trip = findNextTrip(data, today);
       const diffDays = trip ? Math.round((trip.dateMs - Date.UTC(y, m, d)) / 86400000) : null;
@@ -111,15 +129,31 @@ module.exports = async (req, res) => {
       const lowOfficePct = d >= LOW_OFFICE_PCT_FROM_DAY && stats.workingDays > 0 && stats.officePercent < LOW_OFFICE_PCT_TARGET;
 
       for (const sub of subsForSync) {
-        if (!hasLoggedToday && sub.last_daily_reminder_date !== todayDateStr) {
+        // Skip the "log today" nudge on Sundays — not a workday, so there's
+        // nothing to log; Sunday gets the weekly catch-up notification instead.
+        if (!isSunday && !hasLoggedToday && sub.last_daily_reminder_date !== todayDateStr) {
+          const useStreak = streak >= 2;
           await sendAndTrack(sub, {
-            title: "Log today's plan",
-            body: holiday
-              ? `${holiday.name} today — mark it Office/WFH if you worked, or leave it as holiday.`
-              : "You haven't logged today yet — Office, WFH, Travel, Home or Leave?",
+            title: useStreak ? `🔥 ${streak}-day streak — don't lose it` : "Log today's plan",
+            body: useStreak
+              ? `You've logged ${streak} workdays in a row. Log today to make it ${streak + 1}.`
+              : (holiday
+                ? `${holiday.name} today — mark it Office/WFH if you worked, or leave it as holiday.`
+                : "You haven't logged today yet — Office, WFH, Travel, Home or Leave?"),
             tag: 'daily-log',
-            url: '/'
+            url: '/',
+            actions: DAILY_LOG_ACTIONS
           }, { last_daily_reminder_date: todayDateStr });
+        }
+
+        if (isSunday && weekGapsKey && sub.last_weekly_catchup_key !== weekGapsKey) {
+          const list = weekGaps.map((g) => `${DOW_ABBR[new Date(g.dateMs).getUTCDay()]} ${g.d}`).join(', ');
+          await sendAndTrack(sub, {
+            title: `${weekGaps.length} day${weekGaps.length === 1 ? '' : 's'} still unlogged this week`,
+            body: `Before the week resets: ${list}.`,
+            tag: 'weekly-catchup',
+            url: '/'
+          }, { last_weekly_catchup_key: weekGapsKey });
         }
 
         if (tripDue && sub.last_trip_notif_key !== tripKey) {

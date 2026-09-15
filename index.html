@@ -204,6 +204,16 @@
   .save-indicator{ font-size:11px; font-weight:600; color:var(--sage); position:fixed; bottom:18px; right:18px; background:var(--paper-raised); border:1px solid var(--line); padding:7px 14px; border-radius:20px; opacity:0; transition:opacity .3s; }
   .save-indicator.show{opacity:1;}
 
+  /* ---------- In-app catch-up banner ---------- */
+  .catchup-banner[hidden]{ display:none; }
+  .catchup-banner{ background:var(--rose-soft); border:1px solid #e3b3ab; border-radius:14px; padding:14px 16px; margin-bottom:16px; }
+  .catchup-banner .cb-title{ font-size:13px; font-weight:700; color:#8a3d38; margin-bottom:9px; }
+  .catchup-banner .cb-list{ display:flex; flex-direction:column; gap:5px; margin-bottom:10px; }
+  .catchup-banner .cb-row{ display:flex; align-items:center; justify-content:space-between; background:var(--paper-raised); border-radius:9px; padding:8px 11px; font-size:12.5px; font-weight:600; color:var(--ink); cursor:pointer; }
+  .catchup-banner .cb-row:hover{ background:#fff; }
+  .catchup-banner .cb-row .cb-cta{ font-size:11px; font-weight:700; color:var(--accent-deep); }
+  .catchup-banner .cb-dismiss{ border:none; background:none; font-size:11.5px; font-weight:600; color:#8a3d38; cursor:pointer; padding:0; text-decoration:underline; }
+
   /* ---------- Analytics tab ---------- */
   .analytics-view[hidden]{ display:none; }
   .an-hero{ background:var(--paper-raised); border:1px solid var(--line); border-radius:16px; padding:16px 18px; margin-bottom:18px; }
@@ -352,6 +362,11 @@
   </div>
 
   <div id="calendarView">
+    <div class="catchup-banner" id="catchupBanner" hidden>
+      <div class="cb-title">⚠️ <span id="catchupBannerCount"></span> unlogged this week</div>
+      <div class="cb-list" id="catchupBannerList"></div>
+      <button type="button" class="cb-dismiss" id="catchupBannerDismiss">Dismiss for today</button>
+    </div>
     <div id="stickyStripSentinel"></div>
     <div class="sticky-strip" id="stickyStrip">
       <div class="sticky-row1">
@@ -449,6 +464,10 @@
     <div class="modal-actions">
       <div class="sub" style="margin:0;" id="settingsSyncHint">Cloud sync: off</div>
       <button class="btn-primary" id="settingsSyncBtn" type="button">Cloud sync</button>
+    </div>
+    <div class="modal-actions">
+      <div class="sub" style="margin:0;">See if notifications actually show up on this device.</div>
+      <button class="btn-primary" id="testNotifBtn" type="button">🔔 Send test notification</button>
     </div>
     <div class="modal-actions" id="settingsInstallRow" hidden>
       <div class="sub" style="margin:0;" id="settingsInstallHint">Install this app on your phone for full-screen, one-tap access.</div>
@@ -709,6 +728,27 @@ async function registerServiceWorker(){
   catch(e){ console.error('service worker registration failed', e); return null; }
 }
 
+// Fired when a day-type action button on the daily-log push notification is
+// tapped while the app is already open in some tab (see sw.js notificationclick).
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.addEventListener('message', async (event)=>{
+    if(event.data && event.data.type === 'QUICK_LOG_TODAY'){
+      await setDayType(monthKey(new Date(today.getFullYear(), today.getMonth(), 1)), today.getDate(), event.data.dayType);
+      renderCalendar(); renderCountdown();
+      flashSaved('Logged from notification');
+    }
+  });
+}
+
+// Fired when that same action opened a fresh tab instead (no app tab was open).
+async function applyQuickLogFromUrl(){
+  const params = new URLSearchParams(location.search);
+  const dayType = params.get('quicklog');
+  if(!dayType) return;
+  await setDayType(monthKey(new Date(today.getFullYear(), today.getMonth(), 1)), today.getDate(), dayType);
+  history.replaceState({}, '', location.pathname);
+}
+
 function pushSupported(){
   return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 }
@@ -779,6 +819,26 @@ document.getElementById('notifBtn').addEventListener('click', async ()=>{
   } else {
     await enablePushNotifications();
   }
+});
+
+document.getElementById('testNotifBtn').addEventListener('click', async ()=>{
+  if(!pushSupported()){ alert("This browser doesn't support notifications."); return; }
+  let permission = Notification.permission;
+  if(permission === 'default') permission = await Notification.requestPermission();
+  if(permission !== 'granted'){
+    alert('Notifications are blocked for this site — enable them in your browser/phone settings, then try again.');
+    return;
+  }
+  const reg = await navigator.serviceWorker.ready.catch(()=>null);
+  if(!reg){ alert('Service worker isn\'t ready yet — reload the app and try again.'); return; }
+  await reg.showNotification('Test notification', {
+    body: 'If you can see this, notifications are working on this device.',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    tag: 'test-notification',
+    data: { url: '/' }
+  });
+  flashSaved('Test sent');
 });
 
 /* ---------- Countdown ---------- */
@@ -981,6 +1041,49 @@ async function renderAnalytics(){
     });
   });
 }
+
+/* ---------- In-app catch-up banner ---------- */
+async function checkCatchupBanner(){
+  const banner = document.getElementById('catchupBanner');
+  const dow = today.getDay(); // 0 Sun .. 6 Sat
+  if(dow===0 || dow===6){ banner.hidden = true; return; }
+
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  if(localStorage.getItem('_catchup_dismissed_date')===todayStr){ banner.hidden = true; return; }
+
+  const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (dow-1));
+  const gaps = [];
+  for(let i=0;i<dow-1;i++){
+    const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate()+i);
+    const data = await loadMonth(monthKey(d));
+    const dd = data.days[d.getDate()];
+    const holiday = officialHolidayFor(d.getFullYear(), d.getMonth(), d.getDate());
+    const logged = !!(dd && (dd.dayType || (dd.notes && dd.notes.trim()!=='') || dd.tag));
+    if(!logged && !(holiday && holiday.type==='gazetted')) gaps.push(d);
+  }
+
+  if(gaps.length===0){ banner.hidden = true; return; }
+  banner.hidden = false;
+  document.getElementById('catchupBannerCount').textContent = `${gaps.length} day${gaps.length===1?'':'s'}`;
+  document.getElementById('catchupBannerList').innerHTML = gaps.map(d=>
+    `<div class="cb-row" data-y="${d.getFullYear()}" data-m="${d.getMonth()}" data-day="${d.getDate()}">${DAY_NAMES[d.getDay()].slice(0,3)} ${d.getDate()} — not logged<span class="cb-cta">Log</span></div>`
+  ).join('');
+  document.querySelectorAll('#catchupBannerList .cb-row').forEach(row=>{
+    row.addEventListener('click', ()=>{
+      viewDate = new Date(+row.dataset.y, +row.dataset.m, 1);
+      calMode = 'month';
+      document.querySelectorAll('.vt-btn').forEach(b=>b.classList.toggle('active', b.dataset.mode==='month'));
+      setActiveTab('calendar');
+      renderCalendar();
+      openModal(+row.dataset.day);
+    });
+  });
+}
+document.getElementById('catchupBannerDismiss').addEventListener('click', ()=>{
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  localStorage.setItem('_catchup_dismissed_date', todayStr);
+  document.getElementById('catchupBanner').hidden = true;
+});
 
 function setActiveTab(tab){
   activeTab = tab;
@@ -1644,8 +1747,10 @@ window.addEventListener('pageshow', checkForNewVersion);
 (async function init(){
   await loadTags();
   renderTagbar();
+  await applyQuickLogFromUrl();
   await renderCalendar();
   await renderCountdown();
+  await checkCatchupBanner();
   updateSyncPill(true);
   if(isCloudConfigured()) await pullFromCloud(false);
   setInterval(()=>{ pullFromCloud(false); }, 20000);
