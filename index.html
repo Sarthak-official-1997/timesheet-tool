@@ -285,6 +285,13 @@
   #stickyPercentWrap .stat-sub{ display:none; }
   #stickyPercentWrap .pct-bar-track{ flex:1; margin:0; }
   .stats-row .stat-card.percent{ display:none; }
+  .sticky-stats-row{ display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+  .sticky-stat{ background:var(--paper-raised); border:1px solid var(--line); border-radius:10px; padding:6px 4px 5px; text-align:center; }
+  .sticky-stat b{ font-family:'Fraunces',serif; font-size:15px; font-weight:600; display:block; line-height:1.1; color:var(--ink); }
+  .sticky-stat span{ font-size:8px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.03em; }
+  .sticky-stat.office b{ color:var(--accent-deep); }
+  .sticky-stat.wfh b{ color:var(--sky-deep); }
+  .sticky-stat.leave b{ color:var(--rose); }
 
   .grid.agenda-mode{ display:flex; flex-direction:column; gap:6px; }
   .weekdays.agenda-hide{ display:none; }
@@ -404,6 +411,7 @@
         </div>
         <div id="stickyPercentWrap"></div>
       </div>
+      <div class="sticky-stats-row" id="stickyStatsRow"></div>
       <div class="sticky-row2">
         <button class="nav-btn" id="prevStickyNav">&larr;</button>
         <div class="month-label" id="monthLabelSticky"></div>
@@ -1272,6 +1280,12 @@ function renderStats(data, y, m){
     <div class="stat-card home"><div class="stat-num">${s.homeDays}</div><div class="stat-label">Home / off</div></div>
   `;
   document.getElementById('stickyPercentWrap').innerHTML = percentCardHtml;
+  document.getElementById('stickyStatsRow').innerHTML = `
+    <div class="sticky-stat working"><b>${s.workingDays}</b><span>Working</span></div>
+    <div class="sticky-stat office"><b>${s.officeDays}</b><span>Office</span></div>
+    <div class="sticky-stat wfh"><b>${s.wfhDays}</b><span>WFH</span></div>
+    <div class="sticky-stat leave"><b>${s.leaveDays}</b><span>Leave</span></div>
+  `;
 }
 
 /* ---------- Analytics tab ---------- */
