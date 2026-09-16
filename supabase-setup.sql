@@ -24,6 +24,12 @@ alter table push_subscriptions add column if not exists last_weekly_catchup_key 
 -- Added for shared to-do lists + their daily reminder dedupe.
 alter table push_subscriptions add column if not exists last_todo_reminder_date text;
 
+-- Per-category on/off switches from the Alerts screen (e.g. {"dailyLog":false}
+-- turns off just the daily log reminder for that device). A category missing
+-- from this object defaults to on, so existing subscriptions with an empty
+-- '{}' keep getting everything until the user turns something off.
+alter table push_subscriptions add column if not exists notif_prefs jsonb not null default '{}'::jsonb;
+
 -- Locked down: no policies are added, so the anon/browser key gets zero
 -- access to this table. Only the Vercel serverless functions can read or
 -- write it, using the Supabase *service role* key (which always bypasses

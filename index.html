@@ -239,11 +239,21 @@
   .restore-options{ display:flex; flex-direction:column; gap:9px; margin-top:16px; }
   .restore-options button{ width:100%; }
 
-  .alert-cat{ display:flex; gap:11px; align-items:flex-start; padding:10px 0; border-bottom:1px solid var(--line); }
+  .alert-cat{ display:flex; gap:11px; align-items:center; padding:11px 0; border-bottom:1px solid var(--line); }
   .alert-cat:last-of-type{ border-bottom:none; }
-  .alert-cat .ac-ico{ width:34px; height:34px; border-radius:10px; background:var(--paper); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+  .alert-cat.ac-off{ opacity:0.5; }
+  .alert-cat .ac-ico{ width:34px; height:34px; border-radius:10px; background:var(--paper); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; align-self:flex-start; }
+  .alert-cat .ac-txt{ flex:1; min-width:0; }
   .alert-cat .ac-title{ font-weight:700; font-size:13px; color:var(--ink); }
-  .alert-cat .ac-sub{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; line-height:1.45; }
+  .alert-cat .ac-time{ display:inline-block; font-size:9.5px; font-weight:700; color:var(--accent-deep); background:var(--accent-soft); border-radius:8px; padding:1px 7px; margin-left:6px; vertical-align:middle; }
+  .alert-cat .ac-sub{ font-size:11.5px; color:var(--ink-soft); margin-top:3px; line-height:1.45; }
+  .ac-switch{ position:relative; width:38px; height:22px; flex-shrink:0; }
+  .ac-switch input{ opacity:0; width:0; height:0; position:absolute; }
+  .ac-switch .slider{ position:absolute; inset:0; background:var(--line-strong); border-radius:22px; cursor:pointer; transition:background .15s; }
+  .ac-switch .slider::before{ content:''; position:absolute; width:16px; height:16px; left:3px; top:3px; background:#fff; border-radius:50%; transition:transform .15s; box-shadow:0 1px 3px rgba(0,0,0,0.25); }
+  .ac-switch input:checked + .slider{ background:var(--sage); }
+  .ac-switch input:checked + .slider::before{ transform:translateX(16px); }
+  .ac-switch input:disabled + .slider{ opacity:0.4; cursor:default; }
 
   .save-indicator{ font-size:11px; font-weight:600; color:var(--sage); position:fixed; bottom:18px; right:18px; background:var(--paper-raised); border:1px solid var(--line); padding:7px 14px; border-radius:20px; opacity:0; transition:opacity .3s; }
   .save-indicator.show{opacity:1;}
@@ -638,36 +648,9 @@
     </div>
 
     <div id="alertsCategories" hidden>
-      <div class="sub" style="margin-bottom:10px;">You're set up. Here's everything this device can be notified about.</div>
+      <div class="sub" id="alertsCategoriesIntro" style="margin-bottom:10px;"></div>
 
-      <div class="alert-cat">
-        <div class="ac-ico">📝</div>
-        <div class="ac-txt"><div class="ac-title">Daily log reminder</div><div class="ac-sub">Nightly — only if today isn't logged yet. Comes with one-tap Office/WFH/Home buttons right on the notification.</div></div>
-      </div>
-      <div class="alert-cat">
-        <div class="ac-ico">🔥</div>
-        <div class="ac-txt"><div class="ac-title">Streak nudge</div><div class="ac-sub">Same daily reminder, reworded once you're 2+ workdays logged in a row, so it protects your streak instead of just asking.</div></div>
-      </div>
-      <div class="alert-cat">
-        <div class="ac-ico">📅</div>
-        <div class="ac-txt"><div class="ac-title">Sunday weekly catch-up</div><div class="ac-sub">Sunday evenings — only if a weekday from that week is still unlogged. Lists exactly which days.</div></div>
-      </div>
-      <div class="alert-cat">
-        <div class="ac-ico">✈️</div>
-        <div class="ac-txt"><div class="ac-title">Tagged-date countdown</div><div class="ac-sub">A daily countdown to any date you've tagged (Travel, Home, or a custom city), starting 30 days out.</div></div>
-      </div>
-      <div class="alert-cat">
-        <div class="ac-ico">📊</div>
-        <div class="ac-txt"><div class="ac-title">Low in-office %</div><div class="ac-sub">Once a month, from day 20 onward — only if you're trending under the 60% target.</div></div>
-      </div>
-      <div class="alert-cat">
-        <div class="ac-ico">📝</div>
-        <div class="ac-txt"><div class="ac-title">Shared to-do reminders</div><div class="ac-sub">Daily — if a to-do list you own or joined still has open items.</div></div>
-      </div>
-      <div class="alert-cat">
-        <div class="ac-ico">🔔</div>
-        <div class="ac-txt"><div class="ac-title">"Remind me" nudges</div><div class="ac-sub">Sent instantly whenever someone you share a to-do list with taps "Remind them" on you.</div></div>
-      </div>
+      <div id="alertsCategoryList"></div>
 
       <div class="modal-actions">
         <div class="sub" style="margin:0;">Turn off all push notifications on this device.</div>
@@ -1353,6 +1336,7 @@ document.getElementById('todoRemindBtn').addEventListener('click', async ()=>{
     const r = await fetch('/api/todos-remind', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ targetCode }) });
     const j = await r.json();
     if(r.ok && j.sent>0) flashSaved('Reminder sent');
+    else if(r.ok && j.muted) alert("They've turned off \"Remind me\" nudges in their Alerts settings.");
     else alert(j.error || "Couldn't send a reminder — they may not have notifications set up.");
   }catch(e){ alert('Could not reach the server — try again.'); }
 });
@@ -1497,7 +1481,104 @@ async function renderAlertsView(){
     setupHint.textContent = !sub
       ? 'Step 1: Enable notifications. Step 2: send yourself a test to confirm.'
       : "Almost there — tap \"Send test\" to confirm notifications actually show up, then you're set.";
+  } else {
+    await renderAlertsCategoryList();
   }
+}
+
+// The cron runs hourly, but each person is only actually checked at their
+// own chosen IST hour (matches api/send-notifications.js's isPersonsHour).
+// Times are shown and picked in IST specifically — not the viewer's device
+// timezone — since that's literally what the server compares against, and
+// the whole app (UP holiday calendar, istNow()) already works in IST.
+const DEFAULT_NOTIF_HOUR_IST = 20;
+function formatHourLabel(hour){
+  const h12 = (hour % 12) || 12;
+  const ampm = hour < 12 ? 'AM' : 'PM';
+  return `${h12}:00 ${ampm} IST`;
+}
+
+const NOTIF_CATEGORIES = [
+  { key:'dailyLog', icon:'📝', title:'Daily log reminder',
+    sub:"Only if today isn't logged yet. Comes with one-tap Office/WFH/Leave buttons, and switches to a 🔥 streak-protecting message once you're 2+ workdays logged in a row." },
+  { key:'weeklyCatchup', icon:'📅', title:'Sunday weekly catch-up',
+    sub:'Sundays only — and only if a weekday from that week is still unlogged. Lists exactly which days.' },
+  { key:'tripCountdown', icon:'✈️', title:'Travel countdown',
+    sub:"A daily countdown to any date marked Travel or tagged with a city — starts once you're within 30 days of it." },
+  { key:'lowOfficePct', icon:'📊', title:'Low in-office %',
+    sub:"Checked from the 20th of the month onward — only fires if you're trending under the 60% target." },
+  { key:'sharedTodo', icon:'📝', title:'Shared to-do reminders',
+    sub:'Only if a to-do list you own or joined still has open items.' },
+  { key:'manualNudge', icon:'🔔', title:'"Remind me" nudges', noTime:true,
+    sub:'Sent the moment someone you share a to-do list with taps "Remind them" on you — not on a schedule.' }
+];
+
+async function renderAlertsCategoryList(){
+  const intro = document.getElementById('alertsCategoriesIntro');
+  const list = document.getElementById('alertsCategoryList');
+
+  let prefs = {};
+  try{
+    const r = await fetch(`/api/notif-prefs?syncId=${encodeURIComponent(getSyncId())}`);
+    if(r.ok){ const j = await r.json(); prefs = j.prefs || {}; }
+  }catch(e){ console.error('failed to load notif prefs', e); }
+
+  const preferredHour = typeof prefs.preferredHourIST==='number' ? prefs.preferredHourIST : DEFAULT_NOTIF_HOUR_IST;
+  const timeLabel = formatHourLabel(preferredHour);
+  intro.innerHTML = `You're set up. Scheduled checks run once daily at
+    <select id="notifHourSelect" class="bk-select" style="margin:0 2px;">
+      ${Array.from({length:24}, (_,h)=>`<option value="${h}" ${h===preferredHour?'selected':''}>${formatHourLabel(h)}</option>`).join('')}
+    </select> — toggle any category off if you don't want it.`;
+
+  document.getElementById('notifHourSelect').addEventListener('change', async (e)=>{
+    prefs.preferredHourIST = parseInt(e.target.value, 10);
+    try{
+      const r = await fetch('/api/notif-prefs', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ syncId: getSyncId(), prefs })
+      });
+      if(!r.ok) throw new Error('save failed');
+      flashSaved('Time saved');
+      renderAlertsCategoryList();
+    }catch(err){ alert("Couldn't save that — check your connection and try again."); }
+  });
+
+  list.innerHTML = NOTIF_CATEGORIES.map(cat=>{
+    const on = prefs[cat.key] !== false;
+    return `
+      <div class="alert-cat${on?'':' ac-off'}" data-cat="${cat.key}">
+        <div class="ac-ico">${cat.icon}</div>
+        <div class="ac-txt">
+          <div class="ac-title">${escapeHtml(cat.title)}${cat.noTime ? '' : `<span class="ac-time">${timeLabel}</span>`}</div>
+          <div class="ac-sub">${escapeHtml(cat.sub)}</div>
+        </div>
+        <label class="ac-switch">
+          <input type="checkbox" data-cat-toggle="${cat.key}" ${on?'checked':''}>
+          <span class="slider"></span>
+        </label>
+      </div>`;
+  }).join('');
+
+  list.querySelectorAll('[data-cat-toggle]').forEach(input=>{
+    input.addEventListener('change', async (e)=>{
+      const key = e.target.dataset.catToggle;
+      prefs[key] = e.target.checked;
+      e.target.closest('.alert-cat').classList.toggle('ac-off', !e.target.checked);
+      try{
+        const r = await fetch('/api/notif-prefs', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ syncId: getSyncId(), prefs })
+        });
+        if(!r.ok) throw new Error('save failed');
+        flashSaved('Saved');
+      }catch(err){
+        alert("Couldn't save that — check your connection and try again.");
+        e.target.checked = !e.target.checked;
+        prefs[key] = e.target.checked;
+        e.target.closest('.alert-cat').classList.toggle('ac-off', !e.target.checked);
+      }
+    });
+  });
 }
 
 document.getElementById('alertsSubscribeBtn').addEventListener('click', async ()=>{

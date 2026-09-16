@@ -48,9 +48,16 @@ module.exports = async (req, res) => {
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
   try {
-    const subs = await sbFetch(`push_subscriptions?sync_id=eq.${encodeURIComponent(targetCode)}&select=*`);
-    if (!subs || subs.length === 0) {
+    const allSubs = await sbFetch(`push_subscriptions?sync_id=eq.${encodeURIComponent(targetCode)}&select=*`);
+    if (!allSubs || allSubs.length === 0) {
       res.status(404).json({ error: "That code doesn't have notifications set up." });
+      return;
+    }
+    // Respects the "Remind me" toggle in their Alerts screen — a category
+    // missing from notif_prefs defaults to on.
+    const subs = allSubs.filter((sub) => !(sub.notif_prefs && sub.notif_prefs.manualNudge === false));
+    if (subs.length === 0) {
+      res.status(200).json({ ok: true, sent: 0, muted: true });
       return;
     }
 

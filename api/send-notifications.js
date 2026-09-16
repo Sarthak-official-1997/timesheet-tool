@@ -26,6 +26,18 @@ const TRIP_COUNTDOWN_MAX_DAYS_OUT = 30;
 // Only nag about a low in-office % once the month is mostly over.
 const LOW_OFFICE_PCT_FROM_DAY = 20;
 const LOW_OFFICE_PCT_TARGET = 60;
+// This job now runs every hour (see vercel.json). Each person only actually
+// gets checked at their own chosen hour (set from Alerts -> Notification
+// time); everyone else's run this hour is a no-op. istNow()'s UTC-getters
+// already read as IST hour-of-day (see istNow's +5:30 shift), so this
+// compares directly against an IST hour, no per-user timezone math needed.
+const DEFAULT_NOTIF_HOUR_IST = 20;
+function isPersonsHour(sub, currentIstHour) {
+  const hour = (sub.notif_prefs && typeof sub.notif_prefs.preferredHourIST === 'number')
+    ? sub.notif_prefs.preferredHourIST
+    : DEFAULT_NOTIF_HOUR_IST;
+  return hour === currentIstHour;
+}
 
 async function sbFetch(path, opts = {}) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
@@ -45,6 +57,12 @@ async function sbFetch(path, opts = {}) {
   }
   if (res.status === 204) return null;
   return res.json();
+}
+
+// A category missing from notif_prefs defaults to on — only an explicit
+// `false` (set from the Alerts screen) turns it off.
+function prefEnabled(sub, key) {
+  return !(sub.notif_prefs && sub.notif_prefs[key] === false);
 }
 
 function parsePlannerData(row) {
@@ -105,6 +123,7 @@ module.exports = async (req, res) => {
     const todayDateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const curMonthKey = monthKey(y, m);
     const isSunday = today.getUTCDay() === 0;
+    const currentIstHour = today.getUTCHours();
 
     for (const syncId of Object.keys(bySync)) {
       const subsForSync = bySync[syncId];
@@ -136,9 +155,13 @@ module.exports = async (req, res) => {
       const lowOfficePct = d >= LOW_OFFICE_PCT_FROM_DAY && stats.workingDays > 0 && stats.officePercent < LOW_OFFICE_PCT_TARGET;
 
       for (const sub of subsForSync) {
+        // This job runs hourly, but each person only gets checked at their
+        // own chosen hour — everyone else's run this hour is a no-op for them.
+        if (!isPersonsHour(sub, currentIstHour)) continue;
+
         // Skip the "log today" nudge on Sundays — not a workday, so there's
         // nothing to log; Sunday gets the weekly catch-up notification instead.
-        if (!isSunday && !hasLoggedToday && sub.last_daily_reminder_date !== todayDateStr) {
+        if (!isSunday && !hasLoggedToday && sub.last_daily_reminder_date !== todayDateStr && prefEnabled(sub, 'dailyLog')) {
           const useStreak = streak >= 2;
           await sendAndTrack(sub, {
             title: useStreak ? `🔥 ${streak}-day streak — don't lose it` : "Log today's plan",
@@ -153,7 +176,7 @@ module.exports = async (req, res) => {
           }, { last_daily_reminder_date: todayDateStr });
         }
 
-        if (isSunday && weekGapsKey && sub.last_weekly_catchup_key !== weekGapsKey) {
+        if (isSunday && weekGapsKey && sub.last_weekly_catchup_key !== weekGapsKey && prefEnabled(sub, 'weeklyCatchup')) {
           const list = weekGaps.map((g) => `${DOW_ABBR[new Date(g.dateMs).getUTCDay()]} ${g.d}`).join(', ');
           await sendAndTrack(sub, {
             title: `${weekGaps.length} day${weekGaps.length === 1 ? '' : 's'} still unlogged this week`,
@@ -163,7 +186,7 @@ module.exports = async (req, res) => {
           }, { last_weekly_catchup_key: weekGapsKey });
         }
 
-        if (tripDue && sub.last_trip_notif_key !== tripKey) {
+        if (tripDue && sub.last_trip_notif_key !== tripKey && prefEnabled(sub, 'tripCountdown')) {
           await sendAndTrack(sub, {
             title: diffDays === 0 ? `Travel day: ${trip.tag.name}` : `${diffDays} day${diffDays === 1 ? '' : 's'} to ${trip.tag.name}`,
             body: diffDays === 0 ? "It's here — safe travels!" : 'Time to plan ahead.',
@@ -172,7 +195,7 @@ module.exports = async (req, res) => {
           }, { last_trip_notif_key: tripKey });
         }
 
-        if (lowOfficePct && sub.last_low_office_month !== curMonthKey) {
+        if (lowOfficePct && sub.last_low_office_month !== curMonthKey && prefEnabled(sub, 'lowOfficePct')) {
           await sendAndTrack(sub, {
             title: 'In-office % is trending low',
             body: `You're at ${stats.officePercent}% in-office this month (target ${LOW_OFFICE_PCT_TARGET}%). ${Math.max(0, stats.workingDays - stats.officeDays)} working day(s) left to catch up.`,
@@ -198,7 +221,9 @@ module.exports = async (req, res) => {
       for (const code of targetCodes) {
         const subsForCode = bySync[code] || [];
         for (const sub of subsForCode) {
+          if (!isPersonsHour(sub, currentIstHour)) continue;
           if (sub.last_todo_reminder_date === todayDateStr) continue;
+          if (!prefEnabled(sub, 'sharedTodo')) continue;
           await sendAndTrack(sub, {
             title: `📝 ${openCount} open to-do${openCount === 1 ? '' : 's'}`,
             body: code === ownerCode
