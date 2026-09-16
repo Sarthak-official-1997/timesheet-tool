@@ -37,7 +37,10 @@ module.exports = async (req, res) => {
       const syncId = String(req.query.syncId || '').trim();
       if (!syncId) { res.status(400).json({ error: 'syncId is required' }); return; }
       const rows = await sbFetch(`push_subscriptions?sync_id=eq.${encodeURIComponent(syncId)}&select=notif_prefs&limit=1`);
-      res.status(200).json({ prefs: (rows && rows[0] && rows[0].notif_prefs) || {} });
+      // hasAnySubscription lets a device that never subscribed itself (e.g.
+      // a desktop browser) still know "notifications are already set up
+      // somewhere for this code" and skip straight to managing them.
+      res.status(200).json({ prefs: (rows && rows[0] && rows[0].notif_prefs) || {}, hasAnySubscription: !!(rows && rows[0]) });
       return;
     }
 

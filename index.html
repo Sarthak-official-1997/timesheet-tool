@@ -650,9 +650,14 @@
     <div id="alertsCategories" hidden>
       <div class="sub" id="alertsCategoriesIntro" style="margin-bottom:10px;"></div>
 
+      <div class="modal-actions" id="alertsManagedNote" hidden>
+        <div class="sub" style="margin:0;">You're managing settings set up on another device — this browser itself isn't subscribed, so it won't get notifications directly.</div>
+        <button class="btn-outline" id="alertsAlsoSubscribeBtn" type="button">Also notify this device</button>
+      </div>
+
       <div id="alertsCategoryList"></div>
 
-      <div class="modal-actions">
+      <div class="modal-actions" id="alertsUnsubscribeRow">
         <div class="sub" style="margin:0;">Turn off all push notifications on this device.</div>
         <button class="btn-outline" id="alertsUnsubscribeBtn" type="button">Unsubscribe</button>
       </div>
@@ -1458,31 +1463,40 @@ async function renderAlertsView(){
   const setupSection = document.getElementById('alertsSetup');
   const categoriesSection = document.getElementById('alertsCategories');
 
-  if(!pushSupported()){
-    setupSection.hidden = false; categoriesSection.hidden = true;
-    document.getElementById('alertsSubscribeBtn').disabled = true;
-    document.getElementById('alertsTestBtn').disabled = true;
-    setupHint.textContent = "This browser doesn't support push notifications.";
-    return;
-  }
-  if(Notification.permission === 'denied'){
-    setupSection.hidden = false; categoriesSection.hidden = true;
-    setupHint.textContent = 'Notifications are blocked for this site — enable them in your browser/phone settings, then reopen this.';
-    return;
-  }
+  const localSupported = pushSupported();
+  const reg = localSupported ? await navigator.serviceWorker.ready.catch(()=>null) : null;
+  const localSub = reg ? await reg.pushManager.getSubscription() : null;
+  const localReady = !!localSub && isNotifTestConfirmed();
 
-  const reg = await navigator.serviceWorker.ready.catch(()=>null);
-  const sub = reg ? await reg.pushManager.getSubscription() : null;
-  const ready = !!sub && isNotifTestConfirmed();
+  // Someone already set this up on another device (mobile, say)? Then this
+  // device — desktop, typically — can manage the same shared preferences
+  // without needing its own subscription or its own test.
+  let fetched = { prefs: {}, hasAnySubscription: false };
+  try{
+    const r = await fetch(`/api/notif-prefs?syncId=${encodeURIComponent(getSyncId())}`);
+    if(r.ok) fetched = await r.json();
+  }catch(e){ console.error('failed to check notif setup', e); }
 
+  const ready = localReady || fetched.hasAnySubscription;
   setupSection.hidden = ready;
   categoriesSection.hidden = !ready;
+
   if(!ready){
-    setupHint.textContent = !sub
-      ? 'Step 1: Enable notifications. Step 2: send yourself a test to confirm.'
-      : "Almost there — tap \"Send test\" to confirm notifications actually show up, then you're set.";
+    if(!localSupported){
+      document.getElementById('alertsSubscribeBtn').disabled = true;
+      document.getElementById('alertsTestBtn').disabled = true;
+      setupHint.textContent = "This browser doesn't support push notifications.";
+    } else if(Notification.permission === 'denied'){
+      setupHint.textContent = 'Notifications are blocked for this site — enable them in your browser/phone settings, then reopen this.';
+    } else {
+      setupHint.textContent = !localSub
+        ? 'Step 1: Enable notifications. Step 2: send yourself a test to confirm.'
+        : "Almost there — tap \"Send test\" to confirm notifications actually show up, then you're set.";
+    }
   } else {
-    await renderAlertsCategoryList();
+    document.getElementById('alertsManagedNote').hidden = localReady;
+    document.getElementById('alertsUnsubscribeRow').hidden = !localReady;
+    await renderAlertsCategoryList(fetched.prefs);
   }
 }
 
@@ -1513,15 +1527,18 @@ const NOTIF_CATEGORIES = [
     sub:'Sent the moment someone you share a to-do list with taps "Remind them" on you — not on a schedule.' }
 ];
 
-async function renderAlertsCategoryList(){
+async function renderAlertsCategoryList(preloadedPrefs){
   const intro = document.getElementById('alertsCategoriesIntro');
   const list = document.getElementById('alertsCategoryList');
 
-  let prefs = {};
-  try{
-    const r = await fetch(`/api/notif-prefs?syncId=${encodeURIComponent(getSyncId())}`);
-    if(r.ok){ const j = await r.json(); prefs = j.prefs || {}; }
-  }catch(e){ console.error('failed to load notif prefs', e); }
+  let prefs = preloadedPrefs;
+  if(!prefs){
+    prefs = {};
+    try{
+      const r = await fetch(`/api/notif-prefs?syncId=${encodeURIComponent(getSyncId())}`);
+      if(r.ok){ const j = await r.json(); prefs = j.prefs || {}; }
+    }catch(e){ console.error('failed to load notif prefs', e); }
+  }
 
   const preferredHour = typeof prefs.preferredHourIST==='number' ? prefs.preferredHourIST : DEFAULT_NOTIF_HOUR_IST;
   const timeLabel = formatHourLabel(preferredHour);
@@ -1612,6 +1629,19 @@ document.getElementById('alertsUnsubscribeBtn').addEventListener('click', async 
   if(!confirm('Turn off all push notifications on this device?')) return;
   await disablePushNotifications();
   localStorage.removeItem('_notif_test_confirmed');
+  await renderAlertsView();
+});
+
+document.getElementById('alertsAlsoSubscribeBtn').addEventListener('click', async ()=>{
+  await enablePushNotifications();
+  const reg = await navigator.serviceWorker.ready.catch(()=>null);
+  if(reg){
+    await reg.showNotification('Test notification', {
+      body: 'If you can see this, notifications are working on this device too.',
+      icon: '/icons/icon-192.png', badge: '/icons/icon-192.png', tag: 'test-notification', data: { url: '/' }
+    });
+    localStorage.setItem('_notif_test_confirmed', '1');
+  }
   await renderAlertsView();
 });
 
