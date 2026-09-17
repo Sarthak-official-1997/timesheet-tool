@@ -1540,25 +1540,12 @@ async function renderAlertsCategoryList(preloadedPrefs){
     }catch(e){ console.error('failed to load notif prefs', e); }
   }
 
-  const preferredHour = typeof prefs.preferredHourIST==='number' ? prefs.preferredHourIST : DEFAULT_NOTIF_HOUR_IST;
-  const timeLabel = formatHourLabel(preferredHour);
-  intro.innerHTML = `You're set up. Scheduled checks run once daily at
-    <select id="notifHourSelect" class="bk-select" style="margin:0 2px;">
-      ${Array.from({length:24}, (_,h)=>`<option value="${h}" ${h===preferredHour?'selected':''}>${formatHourLabel(h)}</option>`).join('')}
-    </select> — toggle any category off if you don't want it.`;
-
-  document.getElementById('notifHourSelect').addEventListener('change', async (e)=>{
-    prefs.preferredHourIST = parseInt(e.target.value, 10);
-    try{
-      const r = await fetch('/api/notif-prefs', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ syncId: getSyncId(), prefs })
-      });
-      if(!r.ok) throw new Error('save failed');
-      flashSaved('Time saved');
-      renderAlertsCategoryList();
-    }catch(err){ alert("Couldn't save that — check your connection and try again."); }
-  });
+  // Custom per-person times would need the cron to run more than once a
+  // day, which Vercel's free plan doesn't allow (see the deploy error if
+  // you've hit this) — so for now everyone shares this one fixed time.
+  // Picking your own time is possible if this project moves to Vercel Pro.
+  const timeLabel = formatHourLabel(DEFAULT_NOTIF_HOUR_IST);
+  intro.textContent = `You're set up. Scheduled checks run once daily at ${timeLabel} for everyone (custom times need a paid Vercel plan) — toggle any category off if you don't want it.`;
 
   list.innerHTML = NOTIF_CATEGORIES.map(cat=>{
     const on = prefs[cat.key] !== false;

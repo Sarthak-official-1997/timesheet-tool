@@ -26,17 +26,15 @@ const TRIP_COUNTDOWN_MAX_DAYS_OUT = 30;
 // Only nag about a low in-office % once the month is mostly over.
 const LOW_OFFICE_PCT_FROM_DAY = 20;
 const LOW_OFFICE_PCT_TARGET = 60;
-// This job now runs every hour (see vercel.json). Each person only actually
-// gets checked at their own chosen hour (set from Alerts -> Notification
-// time); everyone else's run this hour is a no-op. istNow()'s UTC-getters
-// already read as IST hour-of-day (see istNow's +5:30 shift), so this
-// compares directly against an IST hour, no per-user timezone math needed.
+// Per-person custom notification hours needed an hourly cron to check each
+// person at their own chosen time — Vercel's Hobby plan rejects any cron
+// more frequent than once a day, so that's off the table without upgrading
+// to Pro. Back to one shared run for everyone (see vercel.json); this stays
+// a no-op (never blocks sending) so nobody silently stops getting notified
+// just because they'd picked a different hour while the hourly cron was live.
 const DEFAULT_NOTIF_HOUR_IST = 20;
-function isPersonsHour(sub, currentIstHour) {
-  const hour = (sub.notif_prefs && typeof sub.notif_prefs.preferredHourIST === 'number')
-    ? sub.notif_prefs.preferredHourIST
-    : DEFAULT_NOTIF_HOUR_IST;
-  return hour === currentIstHour;
+function isPersonsHour() {
+  return true;
 }
 
 async function sbFetch(path, opts = {}) {
