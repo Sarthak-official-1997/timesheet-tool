@@ -43,7 +43,7 @@ Redeploy after adding env vars (`vercel --prod`) so the functions pick them up.
   it has to be turned on for notifications to know anything about your
   calendar.
 - Tap **🔔 Notifications** and allow the permission prompt. That's it — a
-  daily check (20:30 IST, see `vercel.json`) will push:
+  daily check (1:00 PM IST, see `vercel.json`) will push:
   - a reminder if today isn't logged yet,
   - a countdown at 3 days / 1 day / day-of before your next tagged trip,
   - a heads-up if your in-office % is trending below 60% late in the month.

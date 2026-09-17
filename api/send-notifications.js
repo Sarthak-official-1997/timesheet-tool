@@ -32,7 +32,7 @@ const LOW_OFFICE_PCT_TARGET = 60;
 // to Pro. Back to one shared run for everyone (see vercel.json); this stays
 // a no-op (never blocks sending) so nobody silently stops getting notified
 // just because they'd picked a different hour while the hourly cron was live.
-const DEFAULT_NOTIF_HOUR_IST = 20;
+const DEFAULT_NOTIF_HOUR_IST = 13;
 function isPersonsHour() {
   return true;
 }

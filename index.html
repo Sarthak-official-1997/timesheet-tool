@@ -1505,7 +1505,7 @@ async function renderAlertsView(){
 // Times are shown and picked in IST specifically — not the viewer's device
 // timezone — since that's literally what the server compares against, and
 // the whole app (UP holiday calendar, istNow()) already works in IST.
-const DEFAULT_NOTIF_HOUR_IST = 20;
+const DEFAULT_NOTIF_HOUR_IST = 13;
 function formatHourLabel(hour){
   const h12 = (hour % 12) || 12;
   const ampm = hour < 12 ? 'AM' : 'PM';
